@@ -6,7 +6,9 @@ public class IceShardController : MonoBehaviour {
     private Rigidbody2D rigidBody;
 
     public float speed = 10.0f;
-    public float repel = 500.0f;
+    public float repelAmplitude = 500.0f;
+
+    public Transform iceShatterAnimation;
 
     void Awake()
     {
@@ -28,12 +30,16 @@ public class IceShardController : MonoBehaviour {
             other.gameObject.GetComponent<Animator>().SetTrigger("Hurt");
 
             Vector2 toOther = other.gameObject.transform.position - transform.position;
-            other.gameObject.GetComponent<Rigidbody2D>().AddForce(toOther.normalized * repel, ForceMode2D.Force);
+            other.gameObject.GetComponent<Rigidbody2D>().AddForce(toOther.normalized * repelAmplitude, ForceMode2D.Force);
+
+            Instantiate(iceShatterAnimation, transform.position, transform.rotation);
 
             Destroy(gameObject);
         }
         else if (other.gameObject.CompareTag("Scene"))
         {
+            Instantiate(iceShatterAnimation, transform.position, transform.rotation);
+
             Destroy(gameObject);
         }
     }

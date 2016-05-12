@@ -6,10 +6,10 @@ public class FireballController : MonoBehaviour {
     private Rigidbody2D rigidBody;
 
     public float speed = 5.0f;
-    public float repel = 1000.0f;
+    public float repelAmplitude = 1000.0f;
     public int heat = 30;
 
-    public ParticleSystem steam;
+    public ParticleSystem steamAnimation;
 
     private int remainingHeat;
     private float colliderSqrRadius;
@@ -38,7 +38,7 @@ public class FireballController : MonoBehaviour {
             other.gameObject.GetComponent<Animator>().SetTrigger("Hurt");
 
             Vector2 toOther = other.gameObject.transform.position - transform.position;
-            other.gameObject.GetComponent<Rigidbody2D>().AddForce(toOther.normalized * repel, ForceMode2D.Force);
+            other.gameObject.GetComponent<Rigidbody2D>().AddForce(toOther.normalized * repelAmplitude, ForceMode2D.Force);
 
             Destroy(gameObject);
         }
@@ -76,7 +76,7 @@ public class FireballController : MonoBehaviour {
 
             if(steamCount > 0)
             {
-                Instantiate(steam, transform.position, Quaternion.identity);
+                Instantiate(steamAnimation, transform.position, Quaternion.identity);
             }
 
             if (remainingHeat == 0)

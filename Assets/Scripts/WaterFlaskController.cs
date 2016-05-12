@@ -32,6 +32,7 @@ public class WaterFlaskController : MonoBehaviour {
 
     public Transform waterDrop;
     private Vector2 avgVelocity;
+    private Vector2 avgPosition;
 
     private ParticleSystem particles;
     private ParticleSystem.Particle[] buffer;
@@ -59,6 +60,7 @@ public class WaterFlaskController : MonoBehaviour {
 
     public IceShardController iceShard;
     public float iceShardMaxCooldown = 0.5f;
+    public int iceShardCost = 5;
 
     public float whipMaxCooldown = 5f;
     public int whipAttractorCount = 15;
@@ -80,6 +82,14 @@ public class WaterFlaskController : MonoBehaviour {
 
     private Animator animator;
 
+    [Header("Audio")]
+
+    public AudioSource waterSound;
+    public AudioSource whipSound;
+    public AudioSource whipCrackSound;
+    public AudioSource throwShardSound;
+    public AudioSource freezeSound;
+
     public Vector2 GetFrontAttractor()
     {
         return waterDrop.position;
@@ -88,6 +98,7 @@ public class WaterFlaskController : MonoBehaviour {
     void Awake ()
     {
         particles = GetComponent<ParticleSystem>();
+        particles.maxParticles = waterMax;
         buffer = new ParticleSystem.Particle[particles.maxParticles];
 
         attractors = new List<Vector2>();
@@ -124,22 +135,22 @@ public class WaterFlaskController : MonoBehaviour {
 
                 if (attractors.Count < attractorCount)
                 {
-                    Vector2 toAttractor = attractors[attractors.Count - 1] - mouse;
+                    Vector2 toAttractor = attractors[0] - mouse;
                     if(toAttractor.sqrMagnitude > sqrAttractorRange)
                     {
-                        attractors.Add(mouse);
+                        attractors.Insert(0, mouse);
                         waterDrop.gameObject.AddComponent<PolygonCollider2D>().isTrigger = true;
                     }
                 }
                 else
                 {
-                    attractors[attractors.Count - 1] = mouse;
+                    attractors[0] = mouse;
                 }
 
-                for (int attractorIdx = attractors.Count - 1; attractorIdx > 0; attractorIdx--)
+                for (int attractorIdx = 1; attractorIdx < attractors.Count; attractorIdx++)
                 {
                     Vector2 toNext = attractors[attractorIdx] - attractors[attractorIdx - 1];
-                    attractors[attractorIdx - 1] = attractors[attractorIdx] - sqrAttractorRange * toNext.normalized;
+                    attractors[attractorIdx] = attractors[attractorIdx - 1] + sqrAttractorRange * toNext.normalized;
                 }
             }
         }
@@ -154,7 +165,8 @@ public class WaterFlaskController : MonoBehaviour {
 
     Vector3 GetAttractor (int particleIdx)
     {
-        return attractors[Mathf.FloorToInt(attractors.Count * Mathf.Sqrt((float)(particleIdx) / particles.particleCount))];
+        float ratio = (float)(particleIdx) / waterMax;
+        return attractors[Mathf.FloorToInt(attractors.Count * ratio * ratio)];
     }
 
     //Slow all particles
@@ -349,6 +361,8 @@ public class WaterFlaskController : MonoBehaviour {
     void ComputeKDop()
     {
         PolygonCollider2D[] colliders = waterDrop.gameObject.GetComponents<PolygonCollider2D>();
+        avgPosition = Vector2.zero;
+        avgVelocity = Vector2.zero;
 
         if (particles.particleCount == 0)
         {
@@ -360,15 +374,12 @@ public class WaterFlaskController : MonoBehaviour {
             return;
         }
 
-        int particleCount = 0;
-        Vector3 avgPosition = Vector3.zero;
-        avgVelocity = Vector2.zero;
-
         int clusterIdx = FindLargestCluster();
 
-        for(int attractorIdx = 0; attractorIdx < attractors.Count; attractorIdx++)
+        int particleCount = 0;
+        for (int attractorIdx = 0; attractorIdx < attractors.Count; attractorIdx++)
         {
-            particleCount += ComputeKDop(attractorIdx, clusterIdx, colliders[attractorIdx], avgPosition);
+            particleCount += ComputeKDop(attractorIdx, clusterIdx, colliders[attractorIdx]);
         }
 
         if (particleCount == 0)
@@ -378,17 +389,17 @@ public class WaterFlaskController : MonoBehaviour {
         else
         {
             avgVelocity /= particleCount;
-            waterDrop.position = avgPosition / particleCount;
+            avgPosition /= particleCount;
+            waterDrop.position = avgPosition;
         }
     }
 
     int GetAttractorFirstIndex(int attractorIdx)
     {
-        float ratio = (float)(attractorIdx * attractorIdx) / (attractors.Count * attractors.Count);
-        return Mathf.CeilToInt(particles.particleCount * ratio);
+        return Mathf.CeilToInt(waterMax * Mathf.Sqrt((float)(attractorIdx) / attractors.Count));
     }
 
-    int ComputeKDop(int attractorIdx, int clusterIdx, PolygonCollider2D KDop, Vector2 avgParticlePosition)
+    int ComputeKDop(int attractorIdx, int clusterIdx, PolygonCollider2D KDop)
     {
         int particleCount = 0;
         int frstParticleIdx = GetAttractorFirstIndex(attractorIdx);
@@ -424,10 +435,9 @@ public class WaterFlaskController : MonoBehaviour {
                     }
                 }
                 avgVelocity += (Vector2)(buffer[particleIdx].velocity);
-                avgParticlePosition += position;
+                avgPosition += position;
                 particleCount++;
             }
-            particleIdx++;
         }
         KDopExtremas[2 * directionCount] = KDopExtremas[0];
 
@@ -550,6 +560,7 @@ public class WaterFlaskController : MonoBehaviour {
                 {
                     collider.isTrigger = false;
                 }
+                freezeSound.Play();
             }
             else
             {
@@ -565,17 +576,30 @@ public class WaterFlaskController : MonoBehaviour {
 
     void ShootIceShard ()
     {
-        Vector2 center = waterDrop.position;
-        Vector2 mouse = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        int particleCount = particles.GetParticles(buffer);
 
-        Vector2 direction = mouse - center;
-        Vector2 normal = direction.Rotate(0.5f * Mathf.PI).normalized;
+        if(particleCount >= iceShardCost)
+        {
+            for (int particleIdx = 0; particleIdx < iceShardCost; particleIdx++)
+            {
+                buffer[particleCount - particleIdx - 1].lifetime = -1f;
+            }
+            particles.SetParticles(buffer, particleCount);
 
-        IceShardController fireBallInstance = (IceShardController)Instantiate(iceShard, center + Random.Range(-0.5f, 0.5f) * normal, Quaternion.identity);
+            Vector2 center = waterDrop.position;
+            Vector2 mouse = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
-        fireBallInstance.SetDirection(direction);
+            Vector2 direction = mouse - center;
+            Vector2 normal = direction.Rotate(0.5f * Mathf.PI).normalized;
 
-        attackCooldown = iceShardMaxCooldown;
+            IceShardController fireBallInstance = (IceShardController)Instantiate(iceShard, center + Random.Range(-0.5f, 0.5f) * normal, Quaternion.identity);
+
+            fireBallInstance.SetDirection(direction);
+
+            attackCooldown = iceShardMaxCooldown;
+
+            throwShardSound.Play();
+        }
     }
 
     public void OnWhipAttack (Collider2D other)
@@ -587,8 +611,16 @@ public class WaterFlaskController : MonoBehaviour {
             if (otherRB)
             {
                 otherRB.AddForce(avgVelocity.normalized * rejectAmpl, ForceMode2D.Force);
+                whipCrackSound.Play();
             }
         }
+    }
+
+    void PlayWaterSound()
+    {
+        float volume = Mathf.Min(0.5f * avgVelocity.magnitude, 1f);
+        waterSound.volume = volume;
+        whipSound.volume = volume;
     }
 
     void Attack()
@@ -620,6 +652,7 @@ public class WaterFlaskController : MonoBehaviour {
                     attractMax *= 4f;
                     attractorCount += whipAttractorCount;
                     whipDuration = whipMaxDuration;
+                    whipSound.Play();
                 }
             }
             else if (Input.GetButtonUp("Attack") || whipDuration <= 0.0f)
@@ -637,12 +670,15 @@ public class WaterFlaskController : MonoBehaviour {
                     attractors.RemoveRange(attractorCount, attractors.Count - attractorCount);
                 }
                 attackCooldown = whipMaxCooldown;
+                whipSound.Stop();
             }
         }
     }
 
     void Update ()
     {
+        PlayWaterSound();
+
         OpenFlask();
 
         FreezeWater();

@@ -8,5 +8,5 @@ public class SteamController : MonoBehaviour {
 	void Awake ()
     {
         Destroy(gameObject, steamLifetime);
-	}
+	}   
 }

@@ -11,51 +11,45 @@ public class WaterbenderController : MonoBehaviour {
     public float jumpForce = 10.0f;
     public float walkingThreshold = 0.2f;
 
-    private Transform groundCheck;
+    public float grounderPosition = -1f;
+    public float grounderHeight = 0.1f;
+    public float grounderWidth = 0.2f;
     private int groundMask;
-    private bool jump;
+    private bool jump = false;
+    private bool grounded = false;
+
+    private AudioSource audioSource;
+    public AudioClip snowWalkSound;
+    public AudioClip jumpSound;
 
     void Start ()
     {
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
-        groundCheck = transform.FindChild("GroundCheck");
 
         string[] groundLayers = { "Scene", "Water" };
         groundMask = LayerMask.GetMask(groundLayers);
-        jump = false;
+
+        audioSource = GetComponent<AudioSource>();
     }
 
     void Update ()
     {
-        if (Physics2D.Linecast(transform.position, groundCheck.position, groundMask))
-        {
-            if (Input.GetButtonDown("Jump"))
-            {
-                jump = true;
-                animator.SetBool("Jump", true);
-            }
-            else
-            {
-                animator.SetBool("Jump", false);
-            }
-        }
+        jump = grounded && Input.GetButtonDown("Jump");
     }
 
     void FixedUpdate ()
     {
+        Vector2 position = transform.position;
+        Vector2 upperCorner = position + Vector2.up * (grounderPosition + grounderHeight) - Vector2.right * grounderWidth;
+        Vector2 lowerCorner = position + Vector2.up * (grounderPosition - grounderHeight) + Vector2.right * grounderWidth;
+        grounded = Physics2D.OverlapArea(upperCorner, lowerCorner, groundMask);
+
         float h = Input.GetAxis("Horizontal");
 
         animator.SetFloat("Speed", Mathf.Abs(h));
-
-        if(Mathf.Abs(h) > walkingThreshold)
-        {
-            animator.SetBool("Walking", true);
-        }
-        else
-        {
-            animator.SetBool("Walking", false);
-        }
+        animator.SetBool("Jump", !grounded);
+        animator.SetBool("Walking", Mathf.Abs(h) > walkingThreshold);
 
         if (h * transform.localScale.x < 0)
         {
@@ -67,6 +61,7 @@ public class WaterbenderController : MonoBehaviour {
         if(jump)
         {
             rigidBody.AddForce(Vector2.up * jumpForce);
+            PlayJumpSound();
             jump = false;
         }
     }
@@ -86,5 +81,19 @@ public class WaterbenderController : MonoBehaviour {
         Vector3 scale = transform.localScale;
         scale.x *= -1.0f;
         transform.localScale = scale;
+    }
+
+    public void PlayWalkSound()
+    {
+        audioSource.Stop();
+        audioSource.clip = snowWalkSound;
+        audioSource.Play();
+    }
+
+    void PlayJumpSound()
+    {
+        audioSource.Stop();
+        audioSource.clip = jumpSound;
+        audioSource.Play();
     }
 }
