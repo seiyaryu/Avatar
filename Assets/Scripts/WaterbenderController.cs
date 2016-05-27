@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 
 public class WaterbenderController : MonoBehaviour {
@@ -18,9 +19,8 @@ public class WaterbenderController : MonoBehaviour {
     private bool jump = false;
     private bool grounded = false;
 
-    private AudioSource audioSource;
-    public AudioClip snowWalkSound;
-    public AudioClip jumpSound;
+    public AudioSource snowWalkSound;
+    public AudioSource jumpSound;
 
     void Start ()
     {
@@ -29,8 +29,6 @@ public class WaterbenderController : MonoBehaviour {
 
         string[] groundLayers = { "Scene", "Water" };
         groundMask = LayerMask.GetMask(groundLayers);
-
-        audioSource = GetComponent<AudioSource>();
     }
 
     void Update ()
@@ -85,15 +83,11 @@ public class WaterbenderController : MonoBehaviour {
 
     public void PlayWalkSound()
     {
-        audioSource.Stop();
-        audioSource.clip = snowWalkSound;
-        audioSource.Play();
+        snowWalkSound.Play();
     }
 
     void PlayJumpSound()
     {
-        audioSource.Stop();
-        audioSource.clip = jumpSound;
-        audioSource.Play();
+        jumpSound.Play();
     }
 }

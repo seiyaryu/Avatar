@@ -3,25 +3,49 @@ using System.Collections;
 
 public class FireballController : MonoBehaviour {
 
+    private Camera viewpoint;
     private Rigidbody2D rigidBody;
+    private CircleCollider2D circleCollider;
 
     public float speed = 5.0f;
     public float repelAmplitude = 1000.0f;
     public int heat = 30;
+    public float heatWave = 3f;
+    public float vanishingSqrRange = 10f;
 
-    public ParticleSystem steamAnimation;
+    public GameObject steamAnimation;
+    public float steamSoundMaxCooldown = 0.2f;
+    private float steamSoundCooldown = 0f;
 
     private int remainingHeat;
     private float colliderSqrRadius;
 
 	void Awake ()
     {
+        viewpoint = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
+        vanishingSqrRange *= viewpoint.orthographicSize * viewpoint.orthographicSize;
+
         rigidBody = GetComponent<Rigidbody2D>();
+        circleCollider = GetComponent<CircleCollider2D>();
+
         remainingHeat = heat;
 
-        CircleCollider2D circle = GetComponent<CircleCollider2D>();
-        colliderSqrRadius = circle.radius * circle.radius;
+        colliderSqrRadius = heatWave * circleCollider.radius * heatWave * circleCollider.radius;
 	}
+
+    void Update()
+    {
+        if(steamSoundCooldown > 0f)
+        {
+            steamSoundCooldown -= Time.deltaTime;
+        }
+
+        Vector2 toViewpoint = transform.position - viewpoint.transform.position;
+        if (remainingHeat == 0 || toViewpoint.sqrMagnitude > vanishingSqrRange)
+        {
+            Destroy(gameObject);
+        }
+    }
 
     public void SetDirection(Vector2 direction)
     {
@@ -52,37 +76,45 @@ public class FireballController : MonoBehaviour {
     {
         if (other.gameObject.CompareTag("Water"))
         {
-            ParticleSystem water = GameObject.Find("WaterFlask").GetComponent<ParticleSystem>();
+            bool emitSteam = EmitSteam(other);
 
-            float sqrRange = 9.0f * colliderSqrRadius;
-
-            ParticleSystem.Particle[] particles = new ParticleSystem.Particle[water.maxParticles];
-            int particleCount = water.GetParticles(particles);
-
-            int particleIdx = 0;
-            int steamCount = 0;
-            while (particleIdx < particleCount && remainingHeat > 0)
+            if(emitSteam)
             {
-                Vector3 toParticle = particles[particleIdx].position - transform.position;
-                if (toParticle.sqrMagnitude < sqrRange)
+                GameObject steamEffect = Instantiate(steamAnimation, transform.position, Quaternion.identity) as GameObject;
+                if(steamSoundCooldown > 0f)
                 {
-                    particles[particleIdx].lifetime = -1.0f;
-                    remainingHeat--;
-                    steamCount++;
+                    Destroy(steamEffect.GetComponent<AudioSource>());
                 }
-                particleIdx++;
-            }
-            water.SetParticles(particles, particleCount);
-
-            if(steamCount > 0)
-            {
-                Instantiate(steamAnimation, transform.position, Quaternion.identity);
-            }
-
-            if (remainingHeat == 0)
-            {
-                Destroy(gameObject);
+                else
+                {
+                    steamSoundCooldown = steamSoundMaxCooldown;
+                }
             }
         }
+    }
+
+    bool EmitSteam(Collider2D collider)
+    {
+        ParticleSystem water = GameObject.Find("WaterFlask").GetComponent<ParticleSystem>();
+
+        ParticleSystem.Particle[] particles = new ParticleSystem.Particle[water.maxParticles];
+        int particleCount = water.GetParticles(particles);
+
+        int particleIdx = 0;
+        int steamCount = 0;
+        while (particleIdx < particleCount && remainingHeat > 0)
+        {
+            Vector3 toParticle = particles[particleIdx].position - transform.position;
+            if (toParticle.sqrMagnitude < colliderSqrRadius)
+            {
+                particles[particleIdx].lifetime = -1.0f;
+                remainingHeat--;
+                steamCount++;
+            }
+            particleIdx++;
+        }
+        water.SetParticles(particles, particleCount);
+
+        return steamCount > 0;
     }
 }

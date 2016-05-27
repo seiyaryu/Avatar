@@ -27,10 +27,8 @@ public class IceShardController : MonoBehaviour {
     {
         if (other.gameObject.CompareTag("Enemy"))
         {
-            other.gameObject.GetComponent<Animator>().SetTrigger("Hurt");
-
             Vector2 toOther = other.gameObject.transform.position - transform.position;
-            other.gameObject.GetComponent<Rigidbody2D>().AddForce(toOther.normalized * repelAmplitude, ForceMode2D.Force);
+            other.gameObject.GetComponent<DamageableController>().OnHit(1, toOther.normalized * repelAmplitude);
 
             Instantiate(iceShatterAnimation, transform.position, transform.rotation);
 

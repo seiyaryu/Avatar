@@ -511,7 +511,7 @@ public class WaterFlaskController : MonoBehaviour {
             }
         }
 
-        if (flaskOpen)
+        if (flaskOpen && !frozen)
         {
             if (Input.GetButtonDown("Gather") && gatherCooldown <= 0f)
             {
@@ -606,13 +606,7 @@ public class WaterFlaskController : MonoBehaviour {
     {
         if (!frozen && attacking && other.gameObject.CompareTag("Enemy") && avgVelocity.sqrMagnitude > hitThreshold)
         {
-            other.gameObject.GetComponent<Animator>().SetTrigger("Hurt");
-            Rigidbody2D otherRB = other.gameObject.GetComponent<Rigidbody2D>();
-            if (otherRB)
-            {
-                otherRB.AddForce(avgVelocity.normalized * rejectAmpl, ForceMode2D.Force);
-                whipCrackSound.Play();
-            }
+            other.gameObject.GetComponent<DamageableController>().OnHit(1, avgVelocity.normalized * rejectAmpl);
         }
     }
 
