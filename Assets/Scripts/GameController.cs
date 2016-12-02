@@ -1,0 +1,133 @@
+﻿using UnityEngine;
+using UnityEngine.SceneManagement;
+using System.Collections;
+
+public class GameController : MonoBehaviour {
+
+    [SerializeField]
+    private GameObject titleScreen;
+
+    [SerializeField]
+    private GameObject gameScreen;
+
+    public GameObject MainCanvas
+    {
+        get { return gameScreen; }
+    }
+
+    [SerializeField]
+    private GameObject pauseScreen;
+
+    [SerializeField]
+    private GameObject gameOverScreen;
+
+    [SerializeField]
+    private GameObject player;
+
+    public GameObject Player
+    {
+        get { return player; }
+    }
+
+    [SerializeField]
+    private Camera viewpoint;
+
+    public Camera Viewpoint
+    {
+        get { return viewpoint;  }
+    }
+
+    private SpawnerController spawner;
+
+    public int EnemyCount
+    {
+        get
+        {
+            if (spawner)
+            {
+                return spawner.EnemyCount;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+    }
+
+    private static GameController instance = null;
+
+	void Awake ()
+    {
+	    if (!instance)
+        {
+            instance = this;
+        }
+        else if (instance != this)
+        {
+            Destroy(gameObject);
+        }
+        spawner = GetComponent<SpawnerController>();
+    }
+
+    void Update ()
+    {
+        if (Input.GetButtonDown("Pause") && IsGameOn())
+        {
+            Pause();
+        }
+    }
+
+    public bool IsGameOn ()
+    {
+        return Time.timeScale > 0 && !titleScreen.activeSelf;
+    }
+
+    public void Pause ()
+    {
+        Time.timeScale = 0f;
+        AudioListener.pause = true;
+        gameScreen.SetActive(false);
+        pauseScreen.SetActive(true);
+    }
+
+    public void Resume()
+    {
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        gameScreen.SetActive(true);
+        pauseScreen.SetActive(false);
+    }
+
+    public void Restart()
+    {
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void ExitGame ()
+    {
+        Application.Quit();
+    }
+
+    public void NotifyDeath ()
+    {
+        if (spawner)
+        {
+            spawner.NotifyDeath();
+        }
+    }
+
+    public void GameOver ()
+    {
+        Time.timeScale = 0f;
+        AudioListener.pause = true;
+        gameScreen.SetActive(false);
+        gameOverScreen.SetActive(true);
+    }
+
+    static public GameController GetGameManager()
+    {
+        return instance;
+    }
+}

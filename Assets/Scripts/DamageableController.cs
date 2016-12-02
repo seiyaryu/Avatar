@@ -4,31 +4,29 @@ using System.Collections;
 
 public class DamageableController : MonoBehaviour {
 
-    public int healthPoints = 10;
-    protected int currentHP;
+    public int maximumHP = 10;
+    private int currentHP;
 
     public float hitMaxCooldown = 1.5f;
-    protected float hitCooldown = 0f;
+    private float hitCooldown = 0f;
 
-    public DamagePopupController damagePopup;
-    private Transform popupOrigin;
-    private Transform gameCanvas;
+    public Transform gameCanvas;
+
+    public MonoBehaviour deathListener;
+    public MonoBehaviour damageListener;
+
+    public PopupController damagePopup;
+    public Transform popupOrigin;
 
     private Rigidbody2D rigidBody;
     private Animator animator;
 
-    void Start()
-    {
-        gameCanvas = GameObject.FindGameObjectWithTag("GameCanvas").transform;
-    }
-
     void Awake ()
     {
-        popupOrigin = transform.FindChild("PopupOrigin");
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
 
-        currentHP = healthPoints;
+        currentHP = maximumHP;
     }
 
     void Update ()
@@ -41,28 +39,67 @@ public class DamageableController : MonoBehaviour {
 
     void PrintDamage(int damage)
     {
-        DamagePopupController popup = Instantiate(damagePopup); //Pop damage inflicted
+        PopupController popup = Instantiate(damagePopup); //Pop damage inflicted
         popup.origin = popupOrigin;
-        popup.transform.SetParent(gameCanvas);
-        popup.GetComponentInChildren<Text>().text = (-damage).ToString();
+        popup.transform.SetParent(gameCanvas, false);
+        popup.Text = (-damage).ToString();
     }
 
     public void OnHit (int damage, Vector2 force)
     {
-        if (hitCooldown <= 0f) //Invincible or not
+        if(IsAlive())
         {
-            rigidBody.AddForce(force, ForceMode2D.Force);
-            currentHP -= damage;
-            if (currentHP > 0) //Still alive
+            if (hitCooldown <= 0f) //Invincible or not
             {
-                animator.SetTrigger("Hurt");
-                hitCooldown = hitMaxCooldown;
+                if (rigidBody) rigidBody.AddForce(force, ForceMode2D.Impulse);
+                currentHP -= damage;
+                if (currentHP > 0) //Still alive
+                {
+                    if (animator) animator.SetTrigger("Hurt");
+                    hitCooldown = hitMaxCooldown;
 
-                PrintDamage(damage);
+                    PrintDamage(damage);
+
+                    OnDamaged(damage);
+                }
+                else //Dead
+                {
+                    if (animator) animator.SetTrigger("Death");
+
+                    OnDeath();
+                }
             }
-            else //Dead
+        }
+    }
+
+    void OnDamaged(int damage)
+    {
+        if (damageListener)
+        {
+            if (damageListener is IDamageListener)
             {
-                Destroy(gameObject);
+                IDamageListener listener = damageListener as IDamageListener;
+                listener.OnDamaged(damage);
+            }
+            else
+            {
+                damageListener = null;
+            }
+        }
+    }
+
+    void OnDeath()
+    {
+        if (deathListener)
+        {
+            if (deathListener is IDeathListener)
+            {
+                IDeathListener listener = deathListener as IDeathListener;
+                listener.OnDeath();
+            }
+            else
+            {
+                deathListener = null;
             }
         }
     }
@@ -70,5 +107,20 @@ public class DamageableController : MonoBehaviour {
     public bool IsStunned ()
     {
         return hitCooldown > 0f;
+    }
+
+    public bool IsAlive()
+    {
+        return currentHP > 0;
+    }
+
+    public int GetCurrentHP()
+    {
+        return currentHP;
+    }
+
+    public int GetMaxHP()
+    {
+        return maximumHP;
     }
 }

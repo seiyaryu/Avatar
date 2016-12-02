@@ -2,10 +2,13 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public class WaterbenderController : MonoBehaviour {
+public class WaterbenderController : MonoBehaviour, IDeathListener {
 
-    Rigidbody2D rigidBody;
-    Animator animator;
+    private Rigidbody2D rigidBody;
+    private Animator animator;
+    private SpriteRenderer spriteRenderer;
+    private DamageableController damageable;
+    private WaterFlaskController water;
 
     public float maxSpeed = 5.0f;
     public float moveForce = 10.0f;
@@ -15,56 +18,96 @@ public class WaterbenderController : MonoBehaviour {
     public float grounderPosition = -1f;
     public float grounderHeight = 0.1f;
     public float grounderWidth = 0.2f;
+
     private int groundMask;
+    private int waterMask;
     private bool jump = false;
     private bool grounded = false;
+    private float move = 0f;
 
-    public AudioSource snowWalkSound;
-    public AudioSource jumpSound;
+    public AudioClip snowWalkSoundClip;
+    public AudioClip jumpSoundClip;
+    public AudioClip hurtSoundClip;
+    public AudioClip deathSoundClip;
+
+    public AudioSource movementSound;
+    public AudioSource painSound;
 
     void Start ()
     {
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        damageable = GetComponent<DamageableController>();
+        water = GetComponentInChildren<WaterFlaskController>();
 
-        string[] groundLayers = { "Scene", "Water" };
-        groundMask = LayerMask.GetMask(groundLayers);
+        groundMask = 1 << LayerMask.NameToLayer("Scene");
+        waterMask  = 1 << LayerMask.NameToLayer("Water");
+
     }
 
     void Update ()
     {
-        jump = grounded && Input.GetButtonDown("Jump");
+        if (GameController.GetGameManager().IsGameOn() && damageable.IsAlive() && !water.IsGatheringWater())
+        {
+            jump = grounded && Input.GetButtonDown("Jump");
+            move = Input.GetAxis("Horizontal");
+        }
+        else
+        {
+            jump = false;
+            move = 0f;
+        }
     }
 
-    void FixedUpdate ()
+    void UpdatePhysics()
     {
         Vector2 position = transform.position;
         Vector2 upperCorner = position + Vector2.up * (grounderPosition + grounderHeight) - Vector2.right * grounderWidth;
         Vector2 lowerCorner = position + Vector2.up * (grounderPosition - grounderHeight) + Vector2.right * grounderWidth;
         grounded = Physics2D.OverlapArea(upperCorner, lowerCorner, groundMask);
 
-        float h = Input.GetAxis("Horizontal");
+        if (!grounded && water.IsFrozen())
+        {
+            grounded = Physics2D.OverlapArea(upperCorner, lowerCorner, waterMask);
+        }
 
-        animator.SetFloat("Speed", Mathf.Abs(h));
-        animator.SetBool("Jump", !grounded);
-        animator.SetBool("Walking", Mathf.Abs(h) > walkingThreshold);
-
-        if (h * transform.localScale.x < 0)
+        if (move * transform.localScale.x < 0)
         {
             Flip();
         }
 
-        rigidBody.AddForce(Vector2.right * h * moveForce);
+        rigidBody.AddForce(Vector2.right * move * moveForce);
 
-        if(jump)
+        if (jump)
         {
             rigidBody.AddForce(Vector2.up * jumpForce);
-            PlayJumpSound();
-            jump = false;
         }
     }
 
-    void LateUpdate()
+    void UpdateGraphicsAndSound()
+    {
+        animator.SetFloat("Speed", Mathf.Abs(move));
+        animator.SetBool("Jump", !grounded);
+        animator.SetBool("Walking", Mathf.Abs(move) > walkingThreshold);
+
+        if (jump)
+        {
+            PlayJumpSound();
+        }
+    }
+
+    void FixedUpdate ()
+    {
+        if (GameController.GetGameManager().IsGameOn() && damageable.IsAlive())
+        {
+            UpdatePhysics();
+            UpdateGraphicsAndSound();
+        }
+        jump = false;
+    }
+
+    void LateUpdate ()
     {
         if (Mathf.Abs(rigidBody.velocity.x) > maxSpeed)
         {
@@ -74,20 +117,48 @@ public class WaterbenderController : MonoBehaviour {
         }
     }
 
-    void Flip()
+    void Flip ()
     {
         Vector3 scale = transform.localScale;
         scale.x *= -1.0f;
         transform.localScale = scale;
     }
 
-    public void PlayWalkSound()
+    void PlayWalkSound ()
     {
-        snowWalkSound.Play();
+        movementSound.clip = snowWalkSoundClip;
+        movementSound.Play();
     }
 
-    void PlayJumpSound()
+    void PlayJumpSound ()
     {
-        jumpSound.Play();
+        movementSound.clip = jumpSoundClip;
+        movementSound.Play();
+    }
+
+    void PlayHurtSound()
+    {
+        painSound.clip = hurtSoundClip;
+        painSound.Play();
+    }
+
+    void PlayDeathSound()
+    {
+        painSound.clip = deathSoundClip;
+        painSound.Play();
+    }
+
+    public void OnDeath ()
+    {
+        gameObject.layer = LayerMask.NameToLayer("Background");
+        spriteRenderer.sortingOrder = -1;
+        water.LeakWater(water.maximumWater);
+        StartCoroutine(LaunchGameOver());
+    }
+
+    IEnumerator LaunchGameOver ()
+    {
+        yield return new WaitForSeconds(3);
+        GameController.GetGameManager().GameOver();
     }
 }

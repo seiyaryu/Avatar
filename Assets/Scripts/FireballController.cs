@@ -3,118 +3,138 @@ using System.Collections;
 
 public class FireballController : MonoBehaviour {
 
-    private Camera viewpoint;
-    private Rigidbody2D rigidBody;
-    private CircleCollider2D circleCollider;
+    [Header("Heat")]
 
-    public float speed = 5.0f;
-    public float repelAmplitude = 1000.0f;
+    [Tooltip("How much water particles can the fireball boil away ?")]
     public int heat = 30;
+    [Tooltip("How far a particle needs to be to be affected by the heat ?")]
     public float heatWave = 3f;
-    public float vanishingSqrRange = 10f;
+
+    [Header("Animations")]
+
+    public GameObject explosionAnimation;
 
     public GameObject steamAnimation;
+    [Tooltip("Sound repeating too many times in a short time is not pleasant to the ear")]
     public float steamSoundMaxCooldown = 0.2f;
     private float steamSoundCooldown = 0f;
 
     private int remainingHeat;
-    private float colliderSqrRadius;
+    private float heatSqrRange;
 
-	void Awake ()
+    private CircleCollider2D circleCollider;
+
+    private ParticleSystem waterParticles;
+    private WaterFlaskController waterDrop;
+
+    public WaterFlaskController Water
     {
-        viewpoint = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
-        vanishingSqrRange *= viewpoint.orthographicSize * viewpoint.orthographicSize;
+        set
+        {
+            waterDrop = value;
+            waterParticles = value.GetComponent<ParticleSystem>();
+        }
+    }
 
-        rigidBody = GetComponent<Rigidbody2D>();
+    void Awake ()
+    {
         circleCollider = GetComponent<CircleCollider2D>();
-
+        heatSqrRange = heatWave * circleCollider.radius * heatWave * circleCollider.radius;
         remainingHeat = heat;
-
-        colliderSqrRadius = heatWave * circleCollider.radius * heatWave * circleCollider.radius;
 	}
 
     void Update()
     {
-        if(steamSoundCooldown > 0f)
+        // We don't want steam sound to pop each time, so we impose a cooldown on the sound of the animation
+        if (steamSoundCooldown > 0f)
         {
             steamSoundCooldown -= Time.deltaTime;
         }
 
-        Vector2 toViewpoint = transform.position - viewpoint.transform.position;
-        if (remainingHeat == 0 || toViewpoint.sqrMagnitude > vanishingSqrRange)
+        // If heat is exhausted, destroy the fireball
+        if (remainingHeat <= 0)
         {
             Destroy(gameObject);
         }
-    }
-
-    public void SetDirection(Vector2 direction)
-    {
-        rigidBody.velocity = direction.normalized * speed;
-        Vector3 angles = transform.eulerAngles;
-        angles.z -= Vector2.Angle(direction, Vector2.left) * Mathf.Sign(direction.y);
-        transform.eulerAngles = angles;
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.gameObject.CompareTag("Player"))
-        {          
-            other.gameObject.GetComponent<Animator>().SetTrigger("Hurt");
-
-            Vector2 toOther = other.gameObject.transform.position - transform.position;
-            other.gameObject.GetComponent<Rigidbody2D>().AddForce(toOther.normalized * repelAmplitude, ForceMode2D.Force);
-
-            Destroy(gameObject);
-        }
-        else if (other.gameObject.CompareTag("Scene"))
+        // The fireball explodes if it hits the player or the scene
+        if (other.gameObject.CompareTag("Player") || other.gameObject.CompareTag("Scene"))
         {
-            Destroy(gameObject);
+            Instantiate(explosionAnimation, transform.position, Quaternion.identity);
+        }
+        // And it emits steam if it hits an ice shard
+        else if (other.gameObject.CompareTag("PlayerProjectile"))
+        {
+            remainingHeat = 0;
+            EmitSteam();
         }
     }
 
     void OnTriggerStay2D(Collider2D other)
     {
-        if (other.gameObject.CompareTag("Water"))
+        // While the fireball is in contact with water, it drains its heat and emits steam
+        if (other.gameObject.CompareTag("Water") && DrainHeat(other))
         {
-            bool emitSteam = EmitSteam(other);
-
-            if(emitSteam)
-            {
-                GameObject steamEffect = Instantiate(steamAnimation, transform.position, Quaternion.identity) as GameObject;
-                if(steamSoundCooldown > 0f)
-                {
-                    Destroy(steamEffect.GetComponent<AudioSource>());
-                }
-                else
-                {
-                    steamSoundCooldown = steamSoundMaxCooldown;
-                }
-            }
+            EmitSteam();
         }
     }
 
-    bool EmitSteam(Collider2D collider)
+    bool DrainHeat(Collider2D collider)
     {
-        ParticleSystem water = GameObject.Find("WaterFlask").GetComponent<ParticleSystem>();
-
-        ParticleSystem.Particle[] particles = new ParticleSystem.Particle[water.maxParticles];
-        int particleCount = water.GetParticles(particles);
-
-        int particleIdx = 0;
-        int steamCount = 0;
-        while (particleIdx < particleCount && remainingHeat > 0)
+        if (waterDrop && waterParticles)
         {
-            Vector3 toParticle = particles[particleIdx].position - transform.position;
-            if (toParticle.sqrMagnitude < colliderSqrRadius)
-            {
-                particles[particleIdx].lifetime = -1.0f;
-                remainingHeat--;
-                steamCount++;
-            }
-            particleIdx++;
-        }
-        water.SetParticles(particles, particleCount);
+            // We get all water particles and destroy those too close
+            ParticleSystem.Particle[] particles = new ParticleSystem.Particle[waterParticles.maxParticles];
+            int particleCount = waterParticles.GetParticles(particles);
 
-        return steamCount > 0;
+            // If the water is frozen, heat decreases twice as fast
+            int heatDecrement = 1;
+            if (waterDrop.IsFrozen())
+            {
+                heatDecrement = 2;
+            }
+
+            int particleIdx = 0;
+            int steamCount = 0;
+            // Iterate through particles
+            while (particleIdx < particleCount && remainingHeat > 0)
+            {
+                Vector3 toParticle = particles[particleIdx].position - transform.position;
+                // Too close or not ?
+                if (toParticle.sqrMagnitude < heatSqrRange)
+                {
+                    // Setting the lifetime to something negative will trigger particle destruction later
+                    particles[particleIdx].remainingLifetime = -1.0f;
+                    remainingHeat -= heatDecrement;
+                    steamCount++;
+                }
+                particleIdx++;
+            }
+            // Put back particles where they belong
+            waterParticles.SetParticles(particles, particleCount);
+
+            return steamCount > 0;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    void EmitSteam()
+    {
+        GameObject steamEffect = Instantiate(steamAnimation, transform.position, Quaternion.identity) as GameObject;
+        // If the sound of the animation was heard not long ago, we do not want to hear it yet
+        if (steamSoundCooldown > 0f)
+        {
+            Destroy(steamEffect.GetComponent<AudioSource>());
+        }
+        else
+        {
+            steamSoundCooldown = steamSoundMaxCooldown;
+        }
     }
 }

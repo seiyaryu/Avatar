@@ -1,12 +1,17 @@
 fileFormatVersion: 2
 guid: 6dc085dcd729449439006f1821768746
-timeCreated: 1459106398
+timeCreated: 1466331635
 licenseType: Free
 TextureImporter:
   fileIDToRecycleName:
     21300000: snow_0
     21300002: snow_1
     21300004: snow_2
+    21300006: Snow_0
+    21300008: Snow_1
+    21300010: Snow_2
+    21300012: Snow_3
+    21300014: Snow_4
   serializedVersion: 2
   mipmaps:
     mipMapMode: 0
@@ -53,7 +58,7 @@ TextureImporter:
   buildTargetSettings: []
   spriteSheet:
     sprites:
-    - name: snow_0
+    - name: Snow_0
       rect:
         serializedVersion: 2
         x: 0
@@ -70,7 +75,7 @@ TextureImporter:
         - {x: 16, y: -16}
         - {x: 16, y: 6}
         - {x: 13, y: 9}
-    - name: snow_1
+    - name: Snow_1
       rect:
         serializedVersion: 2
         x: 32
@@ -87,7 +92,7 @@ TextureImporter:
         - {x: 16, y: -16}
         - {x: 16, y: 5}
         - {x: 12, y: 7}
-    - name: snow_2
+    - name: Snow_2
       rect:
         serializedVersion: 2
         x: 64
@@ -104,6 +109,40 @@ TextureImporter:
         - {x: 16, y: -16}
         - {x: 16, y: 5}
         - {x: 6, y: 12}
+    - name: Snow_3
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline:
+      - - {x: -12, y: 9}
+        - {x: -16, y: 7}
+        - {x: -16, y: -16}
+        - {x: 16, y: -16}
+        - {x: 16, y: 5}
+        - {x: -1, y: 9}
+    - name: Snow_4
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline:
+      - - {x: -14, y: 6}
+        - {x: -16, y: 5}
+        - {x: -16, y: -16}
+        - {x: 16, y: -16}
+        - {x: 16, y: 5}
+        - {x: 3, y: 6}
     outline: []
   spritePackingTag: 
   userData: 

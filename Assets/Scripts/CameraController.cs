@@ -4,22 +4,24 @@ using System.Collections;
 public class CameraController : MonoBehaviour {
 
     public Transform player;
+    public Transform leftEnd;
+    public Transform rightEnd;
 
-    private BoxCollider2D viewport;
     private Camera viewpoint;
 
 	void Start ()
     {
-        viewport = GetComponent<BoxCollider2D>();
         viewpoint = GetComponent<Camera>();
 	}
 	
 	void Update ()
     {
-        //Vector3 position = transform.position;
-        //position.x = player.position.x;
-        //transform.position = position;
-
-        viewport.size = new Vector2(2f * viewpoint.orthographicSize * viewpoint.aspect, 2f * viewpoint.orthographicSize);
+        if(GameController.GetGameManager().IsGameOn())
+        {
+            Vector3 position = transform.position;
+            float viewpointWidth = viewpoint.orthographicSize * viewpoint.aspect;
+            position.x = Mathf.Min(Mathf.Max(player.position.x, leftEnd.position.x + viewpointWidth), rightEnd.position.x - viewpointWidth);
+            transform.position = position;
+        }
 	}
 }

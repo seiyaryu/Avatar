@@ -1,0 +1,159 @@
+fileFormatVersion: 2
+guid: 25ce6e88c9cf98b46a72355bc854d5e1
+timeCreated: 1474799118
+licenseType: Free
+TextureImporter:
+  fileIDToRecycleName:
+    21300000: FirebenderDeath_0
+    21300002: FirebenderDeath_1
+    21300004: FirebenderDeath_2
+    21300006: FirebenderDeath_3
+    21300008: FirebenderDeath_4
+  serializedVersion: 2
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    linearTexture: 0
+    correctGamma: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+  isReadable: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 0
+  cubemapConvolution: 0
+  cubemapConvolutionSteps: 7
+  cubemapConvolutionExponent: 1.5
+  seamlessCubemap: 0
+  textureFormat: -3
+  maxTextureSize: 2048
+  textureSettings:
+    filterMode: 0
+    aniso: 16
+    mipBias: -1
+    wrapMode: 1
+  nPOTScale: 0
+  lightmap: 0
+  rGBM: 0
+  compressionQuality: 50
+  allowsAlphaSplitting: 0
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spritePixelsToUnits: 20
+  alphaIsTransparency: 1
+  textureType: 8
+  buildTargetSettings: []
+  spriteSheet:
+    sprites:
+    - name: FirebenderDeath_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline:
+      - - {x: -2, y: 20}
+        - {x: -5, y: 19}
+        - {x: -8, y: 15}
+        - {x: -13, y: 10}
+        - {x: -13, y: -18}
+        - {x: -9, y: -20}
+        - {x: 8, y: -20}
+        - {x: 10, y: -19}
+        - {x: 10, y: 12}
+        - {x: 1, y: 20}
+    - name: FirebenderDeath_1
+      rect:
+        serializedVersion: 2
+        x: 40
+        y: 0
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline:
+      - - {x: 1, y: 20}
+        - {x: -9, y: 12}
+        - {x: -19, y: 1}
+        - {x: -19, y: -11}
+        - {x: -11, y: -20}
+        - {x: 6, y: -20}
+        - {x: 17, y: -4}
+        - {x: 17, y: 19}
+        - {x: 15, y: 20}
+    - name: FirebenderDeath_2
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 0
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline:
+      - - {x: -3, y: 15}
+        - {x: -6, y: 14}
+        - {x: -20, y: 3}
+        - {x: -20, y: -15}
+        - {x: -15, y: -18}
+        - {x: -6, y: -18}
+        - {x: 5, y: -12}
+        - {x: 20, y: -1}
+        - {x: 20, y: 15}
+    - name: FirebenderDeath_3
+      rect:
+        serializedVersion: 2
+        x: 120
+        y: 0
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline:
+      - - {x: -2, y: 6}
+        - {x: -20, y: 4}
+        - {x: -20, y: -20}
+        - {x: -7, y: -20}
+        - {x: 9, y: -17}
+        - {x: 20, y: -6}
+        - {x: 20, y: 5}
+        - {x: 16, y: 6}
+    - name: FirebenderDeath_4
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 0
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline:
+      - - {x: -13, y: -8}
+        - {x: -20, y: -15}
+        - {x: -20, y: -20}
+        - {x: 20, y: -20}
+        - {x: 20, y: -11}
+        - {x: 18, y: -8}
+    outline: []
+  spritePackingTag: 
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
