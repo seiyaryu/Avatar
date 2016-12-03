@@ -164,15 +164,14 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
         storedWater = maximumWater;
 
         particles = GetComponent<ParticleSystem>();
-        particles.maxParticles = maximumWater;
-        buffer = new ParticleSystem.Particle[particles.maxParticles];
+        buffer = new ParticleSystem.Particle[particles.main.maxParticles];
 
         attractors = new List<Vector2>();
         attractors.Add(new Vector2());
         waterDrop.gameObject.AddComponent<PolygonCollider2D>().isTrigger = true;
 
-        sqrParticleSize = particles.startSize * particles.startSize;
-        attractorRange = particles.startSize * attractorSpacing;
+        sqrParticleSize = particles.main.startSize.constant * particles.main.startSize.constant;
+        attractorRange = particles.main.startSize.constant * attractorSpacing;
         sqrAttractorRange = attractorRange * attractorRange;
         sqrRepelRange = repelSpacing * repelSpacing * sqrParticleSize;
         sqrOutsiderRange = outsiderSpacing * outsiderSpacing * sqrParticleSize;
@@ -190,7 +189,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
         KDopExtremas = new float[2 * directionCount + 1];
         KDopPoints = new Vector2[2 * directionCount];
 
-        clusters = new int[particles.maxParticles];
+        clusters = new int[particles.main.maxParticles];
     }
 
 
@@ -284,7 +283,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
             float distance = Mathf.Sqrt(sqrDistance);
 
             // If the flask is closed and the particle is close enough from its attractor, then it must disappear and get back in the flask
-            if(!flaskOpen && distance < particles.startSize)
+            if(!flaskOpen && distance < particles.main.startSize.constant)
             {
                 buffer[particleIdx].remainingLifetime = -1f;
                 storedWater++;
@@ -369,6 +368,12 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
             {
                 buffer[particleIdx].remainingLifetime = buffer[particleIdx].startLifetime;
             }
+            Vector3 particleVelocity = buffer[particleIdx].velocity;
+            Vector3 particlePosition = buffer[particleIdx].position;
+            particleVelocity.z = 0f;
+            particlePosition.z = 0f;
+            buffer[particleIdx].velocity = particleVelocity;
+            buffer[particleIdx].position = particlePosition;
         }
     }
 
@@ -549,8 +554,8 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
                     for (int directionIdx = 0; directionIdx < directionCount; directionIdx++)
                     {
                         float dot = Vector2.Dot(directions[directionIdx], position);
-                        KDopExtremas[directionIdx] = dot + 0.5f * particles.startSize;
-                        KDopExtremas[directionCount + directionIdx] = dot - 0.5f * particles.startSize;
+                        KDopExtremas[directionIdx] = dot + 0.5f * particles.main.startSize.constant;
+                        KDopExtremas[directionCount + directionIdx] = dot - 0.5f * particles.main.startSize.constant;
                     }
                 }
                 else
@@ -559,13 +564,13 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
                     for (int directionIdx = 0; directionIdx < directionCount; directionIdx++)
                     {
                         float dot = Vector2.Dot(directions[directionIdx], position);
-                        if (dot + 0.5f * particles.startSize > KDopExtremas[directionIdx])
+                        if (dot + 0.5f * particles.main.startSize.constant > KDopExtremas[directionIdx])
                         {
-                            KDopExtremas[directionIdx] = dot + 0.5f * particles.startSize;
+                            KDopExtremas[directionIdx] = dot + 0.5f * particles.main.startSize.constant;
                         }
-                        else if (dot - 0.5f * particles.startSize < KDopExtremas[directionCount + directionIdx])
+                        else if (dot - 0.5f * particles.main.startSize.constant < KDopExtremas[directionCount + directionIdx])
                         {
-                            KDopExtremas[directionCount + directionIdx] = dot - 0.5f * particles.startSize;
+                            KDopExtremas[directionCount + directionIdx] = dot - 0.5f * particles.main.startSize.constant;
                         }
                     }
                 }
@@ -682,7 +687,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
                 }
 
                 // We do not want to spawn more particles than allowed to
-                int spawnCount = Mathf.Min(spawns.Count, particles.maxParticles - particles.particleCount);
+                int spawnCount = Mathf.Min(spawns.Count, particles.main.maxParticles - particles.particleCount);
                 particles.Emit(spawnCount);
 
                 // Set the position of the new particles as specified by the spawners
@@ -742,7 +747,8 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
 
     void FreezeWater ()
     {
-        particles.gravityModifier = 0.0f;
+        ParticleSystem.MainModule main = particles.main;
+        main.gravityModifier = 0.0f;
         Collider2D[] colliders = waterDrop.GetComponents<Collider2D>();
         foreach (Collider2D collider in colliders)
         {
@@ -753,7 +759,8 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
 
     void MeltWater ()
     {
-        particles.gravityModifier = 1.0f;
+        ParticleSystem.MainModule main = particles.main;
+        main.gravityModifier = 1.0f;
         Collider2D[] colliders = waterDrop.GetComponents<Collider2D>();
         foreach (Collider2D collider in colliders)
         {

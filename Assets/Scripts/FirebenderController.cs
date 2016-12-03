@@ -112,7 +112,7 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
         if (direction.x * transform.localScale.x > 0)
         {
             Vector3 scale = transform.localScale;
-            scale.x *= -1.0f;
+            scale.x *= -1f;
             transform.localScale = scale;
         }
     }

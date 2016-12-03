@@ -87,7 +87,7 @@ public class FireballController : MonoBehaviour {
         if (waterDrop && waterParticles)
         {
             // We get all water particles and destroy those too close
-            ParticleSystem.Particle[] particles = new ParticleSystem.Particle[waterParticles.maxParticles];
+            ParticleSystem.Particle[] particles = new ParticleSystem.Particle[waterParticles.main.maxParticles];
             int particleCount = waterParticles.GetParticles(particles);
 
             // If the water is frozen, heat decreases twice as fast

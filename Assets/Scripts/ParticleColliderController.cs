@@ -6,7 +6,7 @@ public class ParticleColliderController : MonoBehaviour {
 
 	void Awake ()
     {
-        GameObject particleCollider = new GameObject();
+        GameObject particleCollider = new GameObject("ParticleCollider");
         particleCollider.transform.position = Vector3.zero;
         particleCollider.transform.rotation = Quaternion.identity;
         particleCollider.transform.SetParent(gameObject.transform, false);
@@ -30,10 +30,12 @@ public class ParticleColliderController : MonoBehaviour {
         {
             if (!circle2D.isTrigger)
             {
-                SphereCollider sphere3D = particleCollider.AddComponent<SphereCollider>();
-                sphere3D.center = new Vector3(circle2D.offset.x, circle2D.offset.y, 0f);
-                sphere3D.radius = circle2D.radius;
-                sphere3D.isTrigger = false;
+                CapsuleCollider capsule3D = particleCollider.AddComponent<CapsuleCollider>();
+                capsule3D.center = new Vector3(circle2D.offset.x, circle2D.offset.y, 0f);
+                capsule3D.radius = circle2D.radius;
+                capsule3D.height = 1f + 2 * circle2D.radius;
+                capsule3D.direction = 2;
+                capsule3D.isTrigger = false;
             }
         }
 
@@ -66,10 +68,9 @@ public class ParticleColliderController : MonoBehaviour {
                         triangles[triangle3DIdx + 1] = vertex3DIdx + 1;
                         triangles[triangle3DIdx + 2] = vertex3DIdx + 2;
                         triangles[triangle3DIdx + 3] = vertex3DIdx + 1;
-                        triangles[triangle3DIdx + 3] = vertex3DIdx + 3;
-                        triangles[triangle3DIdx + 3] = vertex3DIdx + 2;
+                        triangles[triangle3DIdx + 4] = vertex3DIdx + 3;
+                        triangles[triangle3DIdx + 5] = vertex3DIdx + 2;
                     }
-                    ++vertex2DIdx;
                     vertex3DIdx = vertexCount + 2 * vertex2DIdx;
                     vertices[vertex3DIdx] = new Vector3(path[vertex2DIdx].x, path[vertex2DIdx].y, 0.5f);
                     vertices[vertex3DIdx + 1] = new Vector3(path[vertex2DIdx].x, path[vertex2DIdx].y, -0.5f);
@@ -78,8 +79,8 @@ public class ParticleColliderController : MonoBehaviour {
                     triangles[triangle3DIdx + 1] = vertex3DIdx + 1;
                     triangles[triangle3DIdx + 2] = vertexCount;
                     triangles[triangle3DIdx + 3] = vertex3DIdx + 1;
-                    triangles[triangle3DIdx + 3] = vertexCount + 1;
-                    triangles[triangle3DIdx + 3] = vertexCount;
+                    triangles[triangle3DIdx + 4] = vertexCount + 1;
+                    triangles[triangle3DIdx + 5] = vertexCount;
 
                     vertexCount += 2 * path.Length;
                 }
