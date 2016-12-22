@@ -2,16 +2,6 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public static class Vector2Extension
-{
-    public static Vector2 Rotate(this Vector2 v, float angle)
-    {
-        float sin = Mathf.Sin(angle);
-        float cos = Mathf.Cos(angle);
-        return new Vector2(cos * v.x - sin * v.y, sin * v.x + cos * v.y);
-    }
-}
-
 public class FirebenderController : MonoBehaviour, IDeathListener {
 
     [Header("Player")]
@@ -30,17 +20,11 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
 
     [Header("Shooting")]
 
-    public ProjectileController fireBall;
-
     public float firingMaxCooldown = 1.5f;
     private float firingCooldown = 0f;
 
     public float firingMinRange = 2f;
     public float firingMaxRange = 5f;
-    public Transform firingOrigin;
-
-    public float angularDeviation = 0.3f;
-    public float speedDeviation = 0.4f;
     public float rangeVariation = 0.2f;
 
     [Header("Moving")]
@@ -51,6 +35,7 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
     private BoxCollider2D boxCollider;
     private DamageableController damageable;
     private SpriteRenderer spriteRenderer;
+    private FireballShooter shooter;
 
     private Animator animator;
 
@@ -69,6 +54,7 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
         boxCollider = GetComponent<BoxCollider2D>();
         damageable = GetComponent<DamageableController>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        shooter = GetComponent<FireballShooter>();
         firingMinRange *= Random.Range(1f - rangeVariation, 1f + rangeVariation);
         firingMaxRange *= Random.Range(1f - rangeVariation, 1f + rangeVariation);
     }
@@ -89,18 +75,14 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
     {
         if (firingCooldown <= 0f && !damageable.IsStunned())
         {
-            Vector2 toTarget;
-            if (PickTarget(out toTarget))
+            Vector2 target;
+            if (PickTarget(out target))
             {
-                Face(toTarget);
+                Face(target - (Vector2)transform.position);
                 rigidBody.velocity = Vector2.zero;
                 firingCooldown = firingMaxCooldown;
 
-                ProjectileController fireBallInstance = (ProjectileController)Instantiate(fireBall, firingOrigin.position, fireBall.transform.rotation);
-
-                fireBallInstance.Direction = toTarget.Rotate(Random.Range(-angularDeviation, angularDeviation));
-                fireBallInstance.Speed = fireBallInstance.Speed * Random.Range(1f - speedDeviation, 1f + speedDeviation);
-                fireBallInstance.GetComponent<FireballController>().Water = water;
+                shooter.ShootFireballAt(target);
 
                 animator.SetBool("Firing", true);
             }
@@ -117,16 +99,17 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
         }
     }
 
-    bool PickTarget (out Vector2 toTarget)
+    bool PickTarget (out Vector2 target)
     {
-        toTarget = player.transform.position - transform.position;
-        float sqrDist = toTarget.sqrMagnitude;
+        Vector2 position = transform.position;
+        target = player.transform.position;
+        float sqrDist = (target - position).sqrMagnitude;
 
-        Vector2 toWater = water.GetDropPosition() - (Vector2)(transform.position);
-        float sqrNorm = toWater.sqrMagnitude;
+        Vector2 waterPosition = water.GetDropPosition();
+        float sqrNorm = (waterPosition - position).sqrMagnitude;
         if(sqrNorm < sqrDist)
         {
-            toTarget = toWater;
+            target = waterPosition;
             sqrDist = sqrNorm;
         }
 
@@ -143,7 +126,7 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
                 float threshold = Mathf.Sqrt(sqrNorm - 1f);
                 if (deviation >= threshold && sqrNorm < sqrDist)
                 {
-                    toTarget = -toThis;
+                    target = projectile.transform.position;
                     sqrDist = sqrNorm;
                 }
             }

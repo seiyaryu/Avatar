@@ -18,19 +18,46 @@ public class TankController : MonoBehaviour {
     private float tankSpeed = 0.5f;
 
     private Rigidbody2D rigidBody;
+    private Collider2D frontCollider;
     private Transform player;
 
     [SerializeField]
-    private float chargeMaxCooldown;
-    private float chargeCooldown;
+    int collisionDamage = 1;
     [SerializeField]
-    private float chargeLength;
+    float repelAmpl = 10f;
+
+    private float chargeTimer;
+
     [SerializeField]
-    private float chargeSpeed;
+    private float chargeCooldownDuration;
+    [SerializeField]
+    private float chargeDuration;
     [SerializeField]
     private float chargeWarmUpDuration;
     [SerializeField]
+    private float chargeRestDuration;
+    [SerializeField]
+    private float chargeSpeed;
+    [SerializeField]
+    private float chargeRotationSpeed;
+    [SerializeField]
     private float chargeWarmUpSpeed;
+
+    private FireballShooter shooter;
+    private float fireballTimer;
+    [SerializeField]
+    private float fireballCooldownDuration;
+    [SerializeField]
+    private float minFiringAngle;
+    [SerializeField]
+    private float maxFiringAngle;
+
+    void Start ()
+    {
+        chargeDuration += chargeRestDuration;
+        chargeWarmUpDuration += chargeDuration;
+        chargeCooldownDuration += chargeWarmUpDuration;
+    }
 
     void Awake ()
     {
@@ -38,28 +65,16 @@ public class TankController : MonoBehaviour {
         frontWheelJoint = frontWheel.GetComponent<HingeJoint2D>();
         backWheelJoint = backWheel.GetComponent<HingeJoint2D>();
 
+        shooter = GetComponent<FireballShooter>();
+
         player = GameController.GetGameManager().Player.transform;
     }
 	
 	void Update ()
     {
-        rigidBody.velocity = Vector2.right * tankSpeed;
         Orient();
-        RotateWheels();
+        Charge();
 	}
-
-    void RotateWheels ()
-    {
-        float speed = rigidBody.velocity.x;
-
-        JointMotor2D frontMotor = frontWheelJoint.motor;
-        frontMotor.motorSpeed = speed / wheelRadius * Mathf.Rad2Deg;
-        frontWheelJoint.motor = frontMotor;
-
-        JointMotor2D backMotor = backWheelJoint.motor;
-        backMotor.motorSpeed = speed / wheelRadius * Mathf.Rad2Deg;
-        backWheelJoint.motor = backMotor;
-    }
 
     void Orient ()
     {
@@ -72,11 +87,118 @@ public class TankController : MonoBehaviour {
         }
     }
 
+    void ShootFireball ()
+    {
+        if (fireballTimer > 0f)
+        {
+            fireballTimer -= Time.deltaTime;
+        }
+
+        if (fireballTimer < 0f)
+        {
+            fireballTimer = fireballCooldownDuration;
+            Vector2 toTarget = firingOrigin.position - player.position;
+            toTarget.Normalize();
+            float angle = Mathf.Acos(Vector2.Dot(Vector2.up, toTarget));
+            if(minFiringAngle < angle && angle < maxFiringAngle)
+            {
+            }
+        }
+    }
+
+    void SetWheelRotationSpeed(float rotationSpeed)
+    {
+        JointMotor2D frontMotor = frontWheelJoint.motor;
+        frontMotor.motorSpeed = rotationSpeed;
+        frontWheelJoint.motor = frontMotor;
+
+        JointMotor2D backMotor = backWheelJoint.motor;
+        backMotor.motorSpeed = rotationSpeed;
+        backWheelJoint.motor = backMotor;
+    }
+
     void Charge ()
     {
-        if (chargeCooldown > 0f)
+        if (chargeTimer > 0f)
         {
-            chargeCooldown -= Time.deltaTime;
+            chargeTimer -= Time.deltaTime;
+        }
+
+        if (chargeTimer < 0f)
+        {
+            chargeTimer = chargeCooldownDuration;
+        }
+        else if (chargeTimer < chargeRestDuration)
+        {
+            rigidBody.velocity = Vector2.zero;
+            SetWheelRotationSpeed(0);
+        }
+        else if (chargeTimer < chargeDuration)
+        {
+            rigidBody.velocity = Vector2.right * chargeSpeed;
+            SetWheelRotationSpeed(chargeRotationSpeed);
+        }
+        else if (chargeTimer < chargeWarmUpDuration)
+        {
+            rigidBody.velocity = Vector2.right * chargeWarmUpSpeed;
+            SetWheelRotationSpeed(chargeRotationSpeed);
+        }
+        else
+        {
+            rigidBody.velocity = Vector2.right * tankSpeed;
+            SetWheelRotationSpeed(rigidBody.velocity.x * Mathf.Rad2Deg / wheelRadius);
+        }
+    }
+
+    bool HitFront (ContactPoint2D[] contacts)
+    {
+        foreach(ContactPoint2D contact in contacts)
+        {
+            if (contact.collider == frontCollider)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int GetDamage (Collision2D collision)
+    {
+        int damage = collisionDamage;
+        if (HitFront(collision.contacts))
+        {
+            damage += 1;
+        }
+        if (chargeTimer > chargeRestDuration && chargeTimer < chargeDuration)
+        {
+            damage += 1;
+        }
+        return damage;
+    }
+
+    Vector2 GetRepelForce (Collision2D collision)
+    {
+        if(collision.contacts.Length > 0)
+        {
+            return collision.contacts[0].normal * repelAmpl;
+        }
+        else
+        {
+            Vector2 delta = collision.collider.transform.position - transform.position;
+            return delta.normalized * repelAmpl;
+        }
+    }
+
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            DamageableController damageable = collision.gameObject.GetComponent<DamageableController>();
+            if (damageable)
+            {
+
+                damageable.OnHit(GetDamage(collision), GetRepelForce(collision));
+            }
         }
     }
 }

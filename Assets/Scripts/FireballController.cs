@@ -27,17 +27,15 @@ public class FireballController : MonoBehaviour {
     private ParticleSystem waterParticles;
     private WaterFlaskController waterDrop;
 
-    public WaterFlaskController Water
-    {
-        set
-        {
-            waterDrop = value;
-            waterParticles = value.GetComponent<ParticleSystem>();
-        }
-    }
-
     void Awake ()
     {
+        GameObject player = GameController.GetGameManager().Player;
+        if (player)
+        {
+            waterDrop = player.GetComponent<WaterFlaskController>();
+            waterParticles = player.GetComponent<ParticleSystem>();
+        }
+
         circleCollider = GetComponent<CircleCollider2D>();
         heatSqrRange = heatWave * circleCollider.radius * heatWave * circleCollider.radius;
         remainingHeat = heat;
