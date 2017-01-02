@@ -33,7 +33,7 @@ public class UIController : MonoBehaviour {
     void InitHealth()
     {
         healthPoints = new List<RectTransform>();
-        int HP = healthBar.GetMaxHP();
+        int HP = healthBar.MaxHP;
         float width = HPSlider.rect.width / HP;
         for(int idx = 0; idx < HP; idx++)
         {
@@ -48,13 +48,13 @@ public class UIController : MonoBehaviour {
 
     void InitWater()
     {
-        waterSlider.maxValue = waterFlask.GetMaxWater();
+        waterSlider.maxValue = waterFlask.MaxWater;
         waterSliderFill = waterSlider.transform.GetChild(1).GetComponentInChildren<Image>();
     }
 
     void UpdateEnemyCount()
     {
-        enemyCount.text = GameController.GetGameManager().EnemyCount.ToString();
+        enemyCount.text = GameController.GameManager.EnemyCount.ToString();
     }
 
     void Update ()
@@ -66,8 +66,8 @@ public class UIController : MonoBehaviour {
 
     void UpdateHealth ()
     {
-        int HP = healthBar.GetCurrentHP();
-        float width = HPSlider.rect.width / healthBar.GetMaxHP();
+        int HP = healthBar.CurrentHP;
+        float width = HPSlider.rect.width / healthBar.MaxHP;
         for (int idx = 0; idx < healthPoints.Count; idx++)
         {
             healthPoints[idx].offsetMin = Vector2.right * idx * width;
@@ -78,7 +78,7 @@ public class UIController : MonoBehaviour {
 
     void UpdateWater()
     {
-        waterSlider.value = waterFlask.GetCurrentWater();
-        waterSliderFill.color = waterFlask.IsFrozen() ? new Color(0.3f, 0.85f, 0.95f) : new Color(0.05f, 0.45f, 1f);
+        waterSlider.value = waterFlask.CurrentWater;
+        waterSliderFill.color = waterFlask.Frozen ? new Color(0.3f, 0.85f, 0.95f) : new Color(0.05f, 0.45f, 1f);
     }
 }

@@ -164,6 +164,10 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
         storedWater = maximumWater;
 
         particles = GetComponent<ParticleSystem>();
+
+        ParticleSystem.MainModule main = particles.main;
+        main.maxParticles = maximumWater;
+
         buffer = new ParticleSystem.Particle[particles.main.maxParticles];
 
         attractors = new List<Vector2>();
@@ -221,7 +225,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
                     }
                 }
                 // If there are enough attractors, set the position of the front one to the mouse position
-                else
+                else if(!attacking)
                 {
                     attractors[0] = mouse;
                 }
@@ -917,7 +921,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
     {
         PlayWaterSound();
 
-        if (GameController.GetGameManager().IsGameOn() && damageable.IsAlive())
+        if (GameController.GameManager.GameOn && damageable.Alive)
         {
             OpenFlask();
 
@@ -929,18 +933,18 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
         }
     }
 
-    public int GetCurrentWater()
+    public int CurrentWater
     {
-        return currentWater;
+        get { return currentWater; }
     }
 
-    public int GetMaxWater()
+    public int MaxWater
     {
-        return maximumWater;
+        get { return maximumWater; }
     }
 
-    public bool IsFrozen()
+    public bool Frozen
     {
-        return frozen;
+        get { return frozen; }
     }
 }

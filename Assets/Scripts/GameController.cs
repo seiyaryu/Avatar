@@ -10,11 +10,6 @@ public class GameController : MonoBehaviour {
     [SerializeField]
     private GameObject gameScreen;
 
-    public GameObject MainCanvas
-    {
-        get { return gameScreen; }
-    }
-
     [SerializeField]
     private GameObject pauseScreen;
 
@@ -31,11 +26,6 @@ public class GameController : MonoBehaviour {
 
     [SerializeField]
     private Camera viewpoint;
-
-    public Camera Viewpoint
-    {
-        get { return viewpoint;  }
-    }
 
     private SpawnerController spawner;
 
@@ -71,15 +61,10 @@ public class GameController : MonoBehaviour {
 
     void Update ()
     {
-        if (Input.GetButtonDown("Pause") && IsGameOn())
+        if (Input.GetButtonDown("Pause") && GameOn)
         {
             Pause();
         }
-    }
-
-    public bool IsGameOn ()
-    {
-        return Time.timeScale > 0 && !titleScreen.activeSelf;
     }
 
     public void Pause ()
@@ -126,8 +111,23 @@ public class GameController : MonoBehaviour {
         gameOverScreen.SetActive(true);
     }
 
-    static public GameController GetGameManager()
+    static public GameController GameManager
     {
-        return instance;
+        get { return instance; }
+    }
+
+    public bool GameOn
+    {
+        get { return Time.timeScale > 0 && !titleScreen.activeSelf; }
+    }
+
+    public Camera Viewpoint
+    {
+        get { return viewpoint; }
+    }
+
+    public GameObject MainCanvas
+    {
+        get { return gameScreen; }
     }
 }

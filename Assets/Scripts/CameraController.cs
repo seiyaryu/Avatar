@@ -16,7 +16,7 @@ public class CameraController : MonoBehaviour {
 	
 	void Update ()
     {
-        if(GameController.GetGameManager().IsGameOn())
+        if(GameController.GameManager.GameOn)
         {
             Vector3 position = transform.position;
             float viewpointWidth = viewpoint.orthographicSize * viewpoint.aspect;

@@ -29,13 +29,12 @@ public class FireballController : MonoBehaviour {
 
     void Awake ()
     {
-        GameObject player = GameController.GetGameManager().Player;
+        GameObject player = GameController.GameManager.Player;
         if (player)
         {
-            waterDrop = player.GetComponent<WaterFlaskController>();
-            waterParticles = player.GetComponent<ParticleSystem>();
+            waterDrop = player.GetComponentInChildren<WaterFlaskController>();
+            waterParticles = player.GetComponentInChildren<ParticleSystem>();
         }
-
         circleCollider = GetComponent<CircleCollider2D>();
         heatSqrRange = heatWave * circleCollider.radius * heatWave * circleCollider.radius;
         remainingHeat = heat;
@@ -90,7 +89,7 @@ public class FireballController : MonoBehaviour {
 
             // If the water is frozen, heat decreases twice as fast
             int heatDecrement = 1;
-            if (waterDrop.IsFrozen())
+            if (waterDrop.Frozen)
             {
                 heatDecrement = 2;
             }

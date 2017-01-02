@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class ParticleColliderController : MonoBehaviour {
 
+    static float circleSAG = 0.05f;
+
 	void Awake ()
     {
         GameObject particleCollider = new GameObject("ParticleCollider");
@@ -17,10 +19,7 @@ public class ParticleColliderController : MonoBehaviour {
         {
             if (!box2D.isTrigger)
             {
-                BoxCollider box3D = particleCollider.AddComponent<BoxCollider>();
-                box3D.center = new Vector3(box2D.offset.x, box2D.offset.y, 0f);
-                box3D.size = new Vector3(box2D.size.x, box2D.size.y, 1f);
-                box3D.isTrigger = false;
+                MakeCollider(particleCollider, MakeBoundary(box2D));
             }        
         }
 
@@ -45,50 +44,73 @@ public class ParticleColliderController : MonoBehaviour {
         {
             if (!polygon2D.isTrigger)
             {
-
-                MeshCollider mesh3D = particleCollider.AddComponent<MeshCollider>();
-                Mesh geometry = new Mesh();
-                int pointCount = polygon2D.GetTotalPointCount();
-                Vector3[] vertices = new Vector3[2 * pointCount];
-                int triangleCount = 2 * pointCount;
-                int[] triangles = new int[3 * triangleCount];
-
-                int vertexCount = 0;
                 for (int pathIdx = 0; pathIdx < polygon2D.pathCount; ++pathIdx)
                 {
-                    Vector2[] path = polygon2D.GetPath(pathIdx);
-                    int vertex2DIdx, vertex3DIdx, triangle3DIdx;
-                    for (vertex2DIdx = 0; vertex2DIdx < path.Length - 1; ++vertex2DIdx)
-                    {
-                        vertex3DIdx = vertexCount + 2 * vertex2DIdx;
-                        vertices[vertex3DIdx] = new Vector3(path[vertex2DIdx].x, path[vertex2DIdx].y, 0.5f);
-                        vertices[vertex3DIdx + 1] = new Vector3(path[vertex2DIdx].x, path[vertex2DIdx].y, -0.5f);
-                        triangle3DIdx = 3 * vertex3DIdx;
-                        triangles[triangle3DIdx] = vertex3DIdx;
-                        triangles[triangle3DIdx + 1] = vertex3DIdx + 1;
-                        triangles[triangle3DIdx + 2] = vertex3DIdx + 2;
-                        triangles[triangle3DIdx + 3] = vertex3DIdx + 1;
-                        triangles[triangle3DIdx + 4] = vertex3DIdx + 3;
-                        triangles[triangle3DIdx + 5] = vertex3DIdx + 2;
-                    }
-                    vertex3DIdx = vertexCount + 2 * vertex2DIdx;
-                    vertices[vertex3DIdx] = new Vector3(path[vertex2DIdx].x, path[vertex2DIdx].y, 0.5f);
-                    vertices[vertex3DIdx + 1] = new Vector3(path[vertex2DIdx].x, path[vertex2DIdx].y, -0.5f);
-                    triangle3DIdx = 3 * vertex3DIdx;
-                    triangles[triangle3DIdx] = vertex3DIdx;
-                    triangles[triangle3DIdx + 1] = vertex3DIdx + 1;
-                    triangles[triangle3DIdx + 2] = vertexCount;
-                    triangles[triangle3DIdx + 3] = vertex3DIdx + 1;
-                    triangles[triangle3DIdx + 4] = vertexCount + 1;
-                    triangles[triangle3DIdx + 5] = vertexCount;
-
-                    vertexCount += 2 * path.Length;
+                    MakeCollider(particleCollider, polygon2D.GetPath(pathIdx));
                 }
-                geometry.vertices = vertices;
-                geometry.triangles = triangles;
-                mesh3D.sharedMesh = geometry;
-                mesh3D.isTrigger = false;
             }
         }
+    }
+
+    Vector2[] MakeBoundary(BoxCollider2D box)
+    {
+        Vector2[] boundary = new Vector2[4];
+        boundary[0] = box.offset + box.size.x * 0.5f * Vector2.right + box.size.y * 0.5f * Vector2.up;
+        boundary[1] = box.offset - box.size.x * 0.5f * Vector2.right + box.size.y * 0.5f * Vector2.up;
+        boundary[2] = box.offset - box.size.x * 0.5f * Vector2.right - box.size.y * 0.5f * Vector2.up;
+        boundary[3] = box.offset + box.size.x * 0.5f * Vector2.right - box.size.y * 0.5f * Vector2.up;
+        return boundary;
+    }
+
+    Vector2[] MakeBoundary(CircleCollider2D circle)
+    {
+        int pointCount = (circleSAG < circle.radius) ?  Mathf.CeilToInt(Mathf.PI / Mathf.Acos(1f - circleSAG / circle.radius)) : 3;
+        Vector2[] boundary = new Vector2[pointCount];
+        for (int pointIdx = 0; pointIdx < pointCount; ++pointIdx)
+        {
+            float idx = pointIdx;
+            boundary[pointIdx] = circle.offset + circle.radius * Vector2.right.Rotate(2f * Mathf.PI * idx / pointCount);
+        }
+        return boundary;
+    }
+
+    void MakeCollider(GameObject obj, Vector2[] points)
+    {
+        MeshCollider mesh3D = obj.AddComponent<MeshCollider>();
+        Mesh geometry = new Mesh();
+        int pointCount = points.Length;
+        Vector3[] vertices = new Vector3[2 * pointCount];
+        int triangleCount = 2 * pointCount;
+        int[] triangles = new int[3 * triangleCount];
+
+        int vertex2DIdx, vertex3DIdx, triangle3DIdx;
+        for (vertex2DIdx = 0; vertex2DIdx < pointCount - 1; ++vertex2DIdx)
+        {
+            vertex3DIdx = 2 * vertex2DIdx;
+            vertices[vertex3DIdx] = new Vector3(points[vertex2DIdx].x, points[vertex2DIdx].y, 0.5f);
+            vertices[vertex3DIdx + 1] = new Vector3(points[vertex2DIdx].x, points[vertex2DIdx].y, -0.5f);
+            triangle3DIdx = 3 * vertex3DIdx;
+            triangles[triangle3DIdx] = vertex3DIdx;
+            triangles[triangle3DIdx + 1] = vertex3DIdx + 1;
+            triangles[triangle3DIdx + 2] = vertex3DIdx + 2;
+            triangles[triangle3DIdx + 3] = vertex3DIdx + 1;
+            triangles[triangle3DIdx + 4] = vertex3DIdx + 3;
+            triangles[triangle3DIdx + 5] = vertex3DIdx + 2;
+        }
+        vertex3DIdx = 2 * vertex2DIdx;
+        vertices[vertex3DIdx] = new Vector3(points[vertex2DIdx].x, points[vertex2DIdx].y, 0.5f);
+        vertices[vertex3DIdx + 1] = new Vector3(points[vertex2DIdx].x, points[vertex2DIdx].y, -0.5f);
+        triangle3DIdx = 3 * vertex3DIdx;
+        triangles[triangle3DIdx] = vertex3DIdx;
+        triangles[triangle3DIdx + 1] = vertex3DIdx + 1;
+        triangles[triangle3DIdx + 2] = 0;
+        triangles[triangle3DIdx + 3] = vertex3DIdx + 1;
+        triangles[triangle3DIdx + 4] = 1;
+        triangles[triangle3DIdx + 5] = 0;
+
+        geometry.vertices = vertices;
+        geometry.triangles = triangles;
+        mesh3D.sharedMesh = geometry;
+        mesh3D.isTrigger = false;
     }
 }

@@ -2,24 +2,24 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TankController : MonoBehaviour {
+public class TankController : MonoBehaviour, IShooterController {
 
     [SerializeField]
-    private Transform frontWheel;
     private HingeJoint2D frontWheelJoint;
     [SerializeField]
-    private Transform backWheel;
     private HingeJoint2D backWheelJoint;
     [SerializeField]
     private float wheelRadius;
+
     [SerializeField]
     private Transform tankBody;
     [SerializeField]
     private float tankSpeed = 0.5f;
 
     private Rigidbody2D rigidBody;
-    private Collider2D frontCollider;
+
     private Transform player;
+    private WaterFlaskController water;
 
     [SerializeField]
     int collisionDamage = 1;
@@ -43,10 +43,16 @@ public class TankController : MonoBehaviour {
     [SerializeField]
     private float chargeWarmUpSpeed;
 
-    private FireballShooter shooter;
-    private float fireballTimer;
     [SerializeField]
-    private float fireballCooldownDuration;
+    private Collider2D frontCollider;
+
+    [SerializeField]
+    private Collider2D pipeCollider;
+    [SerializeField]
+    private ParticleSystem pipeFumes;
+
+    private ShooterController shooter;
+
     [SerializeField]
     private float minFiringAngle;
     [SerializeField]
@@ -54,20 +60,21 @@ public class TankController : MonoBehaviour {
 
     void Start ()
     {
+        player = GameController.GameManager.Player.transform;
+        water = GameController.GameManager.Player.GetComponentInChildren<WaterFlaskController>();
+    }
+
+    void Awake()
+    {
+        rigidBody = GetComponent<Rigidbody2D>();
+
+        shooter = GetComponent<ShooterController>();
+
         chargeDuration += chargeRestDuration;
         chargeWarmUpDuration += chargeDuration;
         chargeCooldownDuration += chargeWarmUpDuration;
-    }
 
-    void Awake ()
-    {
-        rigidBody = GetComponent<Rigidbody2D>();
-        frontWheelJoint = frontWheel.GetComponent<HingeJoint2D>();
-        backWheelJoint = backWheel.GetComponent<HingeJoint2D>();
-
-        shooter = GetComponent<FireballShooter>();
-
-        player = GameController.GetGameManager().Player.transform;
+        chargeTimer = chargeCooldownDuration;
     }
 	
 	void Update ()
@@ -79,7 +86,7 @@ public class TankController : MonoBehaviour {
     void Orient ()
     {
         float toPlayer = player.position.x - transform.position.x;
-        if (toPlayer * transform.localScale.x > 0)
+        if (toPlayer * transform.localScale.x < 0)
         {
             Vector3 scale = transform.localScale;
             scale.x *= -1f;
@@ -87,22 +94,30 @@ public class TankController : MonoBehaviour {
         }
     }
 
-    void ShootFireball ()
+    public void OnShoot ()
     {
-        if (fireballTimer > 0f)
-        {
-            fireballTimer -= Time.deltaTime;
-        }
 
-        if (fireballTimer < 0f)
+    }
+
+    public void OnReload()
+    {
+
+    }
+
+    public bool GetTarget (out Vector2 target)
+    {
+        Vector2 toTarget = shooter.FiringOrigin.position - player.position;
+        toTarget.Normalize();
+        float angle = Mathf.Acos(Vector2.Dot(Vector2.left * transform.localScale.x, toTarget)) * Mathf.Rad2Deg;
+        if(minFiringAngle < angle && angle < maxFiringAngle)
         {
-            fireballTimer = fireballCooldownDuration;
-            Vector2 toTarget = firingOrigin.position - player.position;
-            toTarget.Normalize();
-            float angle = Mathf.Acos(Vector2.Dot(Vector2.up, toTarget));
-            if(minFiringAngle < angle && angle < maxFiringAngle)
-            {
-            }
+            target = player.position;
+            return true;
+        }
+        else
+        {
+            target = new Vector2();
+            return false;
         }
     }
 
@@ -132,21 +147,43 @@ public class TankController : MonoBehaviour {
         {
             rigidBody.velocity = Vector2.zero;
             SetWheelRotationSpeed(0);
+            EmitFumes();
         }
         else if (chargeTimer < chargeDuration)
         {
-            rigidBody.velocity = Vector2.right * chargeSpeed;
+            rigidBody.velocity = Vector2.right * chargeSpeed * transform.localScale.x;
             SetWheelRotationSpeed(chargeRotationSpeed);
         }
         else if (chargeTimer < chargeWarmUpDuration)
         {
-            rigidBody.velocity = Vector2.right * chargeWarmUpSpeed;
+            rigidBody.velocity = Vector2.right * chargeWarmUpSpeed * transform.localScale.x;
             SetWheelRotationSpeed(chargeRotationSpeed);
         }
         else
         {
-            rigidBody.velocity = Vector2.right * tankSpeed;
+            rigidBody.velocity = Vector2.right * tankSpeed * transform.localScale.x;
             SetWheelRotationSpeed(rigidBody.velocity.x * Mathf.Rad2Deg / wheelRadius);
+        }
+    }
+
+    void EmitFumes()
+    {
+        bool blockedByIce = false;
+        if (water.Frozen)
+        {
+            Collider2D[] colliders = water.waterDrop.GetComponents<Collider2D>();
+            for (int colliderIdx = 0; !blockedByIce && colliderIdx < colliders.Length; ++colliderIdx)
+            {
+                blockedByIce |= pipeCollider.IsTouching(colliders[colliderIdx]);
+            }
+        }
+        if (!blockedByIce)
+        {
+            pipeFumes.Emit(150);
+        }
+        else
+        {
+
         }
     }
 

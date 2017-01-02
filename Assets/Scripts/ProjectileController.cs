@@ -6,53 +6,22 @@ public class ProjectileController : MonoBehaviour {
     [SerializeField]
     private float speed = 5.0f;
 
-    public float Speed
-    {
-        get
-        {
-            return speed;
-        }
-        set
-        {
-            speed = value;
-            if (rigidBody)
-            {
-                rigidBody.velocity = direction * speed;
-            }
-        }
-    }
-
-    [SerializeField]
     private Vector2 direction = Vector2.right;
 
-    public Vector2 Direction
-    {
-        get
-        {
-            return direction;
-        }
-        set
-        {
-            direction = value.normalized;
-            if (rigidBody)
-            {
-                rigidBody.velocity = direction * speed;
-            }
-            Vector3 angles = transform.eulerAngles;
-            angles.z -= Vector2.Angle(direction, Vector2.left) * Mathf.Sign(direction.y);
-            transform.eulerAngles = angles;
-        }
-    }
+    [SerializeField, Tooltip("Default orientation of the projectile with regard to the Z axis.")]
+    private float orientation = 0f;
 
-    [Tooltip("How much do we push impacted objects away ?")]
-    public float repelAmplitude = 10f;
-    [Tooltip("Damage inflicted")]
-    public int damage = 1;
-    [Tooltip("What objects should be affected by this projectile ?")]
-    public string[] targetTags;
+    [SerializeField, Tooltip("How much do we push impacted objects away ?")]
+    private float repelAmplitude = 10f;
+    [SerializeField, Tooltip("Damage inflicted")]
+    private int damage = 1;
+    [SerializeField, Tooltip("What objects should be affected by this projectile ?")]
+    private string[] targetTags;
+    [SerializeField, Tooltip("Is the projectile destroyed when hitting a target ?")]
+    private bool destroyOnHit = true;
 
-    [Tooltip("How far away from the screen should the projectile vanish ?")]
-    public float vanishingSqrRange = 10f;
+    [SerializeField, Tooltip("How far away from the screen should the projectile vanish ?")]
+    private float vanishingSqrRange = 10f;
 
     private Rigidbody2D rigidBody;
     private Camera viewpoint;
@@ -61,7 +30,7 @@ public class ProjectileController : MonoBehaviour {
     {
         rigidBody = GetComponent<Rigidbody2D>();
         rigidBody.velocity = direction * speed;
-        viewpoint = GameController.GetGameManager().Viewpoint;
+        viewpoint = GameController.GameManager.Viewpoint;
         vanishingSqrRange *= viewpoint.orthographicSize * viewpoint.orthographicSize;
     }
 
@@ -93,12 +62,50 @@ public class ProjectileController : MonoBehaviour {
                 Vector2 toOther = other.gameObject.transform.position - transform.position;
                 otherHP.OnHit(damage, toOther.normalized * repelAmplitude);
             }
-            Destroy(gameObject);
+            if (destroyOnHit)
+            {
+                Destroy(gameObject);
+            }          
         }
         // Regardless of targets, if it hits the scene, the projectile is dead
-        else if (other.gameObject.CompareTag("Scene"))
+        else if (destroyOnHit && other.gameObject.CompareTag("Scene"))
         {
             Destroy(gameObject);
+        }
+    }
+
+    public Vector2 Direction
+    {
+        get
+        {
+            return direction;
+        }
+        set
+        {
+            direction = value.normalized;
+            if (rigidBody)
+            {
+                rigidBody.velocity = direction * speed;
+            }
+            Vector3 angles = transform.eulerAngles;
+            angles.z = orientation + Vector2.Angle(direction, Vector2.right) * Mathf.Sign(direction.y);
+            transform.eulerAngles = angles;
+        }
+    }
+
+    public float Speed
+    {
+        get
+        {
+            return speed;
+        }
+        set
+        {
+            speed = value;
+            if (rigidBody)
+            {
+                rigidBody.velocity = direction * speed;
+            }
         }
     }
 }

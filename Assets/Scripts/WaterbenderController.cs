@@ -48,7 +48,7 @@ public class WaterbenderController : MonoBehaviour, IDeathListener {
 
     void Update ()
     {
-        if (GameController.GetGameManager().IsGameOn() && damageable.IsAlive() && !water.IsGatheringWater())
+        if (GameController.GameManager.GameOn && damageable.Alive && !water.IsGatheringWater())
         {
             jump = grounded && Input.GetButtonDown("Jump");
             move = Input.GetAxis("Horizontal");
@@ -67,7 +67,7 @@ public class WaterbenderController : MonoBehaviour, IDeathListener {
         Vector2 lowerCorner = position + Vector2.up * (grounderPosition - grounderHeight) + Vector2.right * grounderWidth;
         grounded = Physics2D.OverlapArea(upperCorner, lowerCorner, groundMask);
 
-        if (!grounded && water.IsFrozen())
+        if (!grounded && water.Frozen)
         {
             grounded = Physics2D.OverlapArea(upperCorner, lowerCorner, waterMask);
         }
@@ -99,7 +99,7 @@ public class WaterbenderController : MonoBehaviour, IDeathListener {
 
     void FixedUpdate ()
     {
-        if (GameController.GetGameManager().IsGameOn() && damageable.IsAlive())
+        if (GameController.GameManager.GameOn && damageable.Alive)
         {
             UpdatePhysics();
             UpdateGraphicsAndSound();
@@ -159,6 +159,6 @@ public class WaterbenderController : MonoBehaviour, IDeathListener {
     IEnumerator LaunchGameOver ()
     {
         yield return new WaitForSeconds(3);
-        GameController.GetGameManager().GameOver();
+        GameController.GameManager.GameOver();
     }
 }

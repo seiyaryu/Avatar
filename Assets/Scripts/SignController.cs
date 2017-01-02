@@ -14,7 +14,7 @@ public class SignController : MonoBehaviour {
 
     void Start ()
     {
-        gameCanvas = GameController.GetGameManager().MainCanvas;
+        gameCanvas = GameController.GameManager.MainCanvas;
     }
 
     void Awake ()

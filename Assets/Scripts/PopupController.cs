@@ -20,7 +20,7 @@ public class PopupController : MonoBehaviour {
 
     void Start ()
     {
-        viewpoint = GameController.GetGameManager().Viewpoint;
+        viewpoint = GameController.GameManager.Viewpoint;
     }
 
     void Update ()

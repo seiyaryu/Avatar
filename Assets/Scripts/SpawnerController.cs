@@ -42,7 +42,7 @@ public class SpawnerController : MonoBehaviour {
 
 	void Update ()
     {
-        if (GameController.GetGameManager().IsGameOn())
+        if (GameController.GameManager.GameOn)
         {
             if (waveIndex < waves.Length)
             {
@@ -77,12 +77,12 @@ public class SpawnerController : MonoBehaviour {
         FirebenderController firebenderController = instance.GetComponent<FirebenderController>();
         if(firebenderController)
         {
-            firebenderController.Player = GameController.GetGameManager().Player;
+            firebenderController.Player = GameController.GameManager.Player;
         }
         DamageableController damageableController = instance.GetComponent<DamageableController>();
         if(damageableController)
         {
-            damageableController.gameCanvas = GameController.GetGameManager().MainCanvas.transform;
+            damageableController.gameCanvas = GameController.GameManager.MainCanvas.transform;
         }    
     }
 }

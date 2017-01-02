@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public class FirebenderController : MonoBehaviour, IDeathListener {
+public class FirebenderController : MonoBehaviour, IDeathListener, IShooterController {
 
     [Header("Player")]
 
@@ -20,9 +20,6 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
 
     [Header("Shooting")]
 
-    public float firingMaxCooldown = 1.5f;
-    private float firingCooldown = 0f;
-
     public float firingMinRange = 2f;
     public float firingMaxRange = 5f;
     public float rangeVariation = 0.2f;
@@ -31,11 +28,12 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
 
     public float force = 7f;
     public float maxSpeed = 2f;
+
     private Rigidbody2D rigidBody;
     private BoxCollider2D boxCollider;
     private DamageableController damageable;
     private SpriteRenderer spriteRenderer;
-    private FireballShooter shooter;
+    private ShooterController shooter;
 
     private Animator animator;
 
@@ -54,39 +52,20 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
         boxCollider = GetComponent<BoxCollider2D>();
         damageable = GetComponent<DamageableController>();
         spriteRenderer = GetComponent<SpriteRenderer>();
-        shooter = GetComponent<FireballShooter>();
+        shooter = GetComponent<ShooterController>();
         firingMinRange *= Random.Range(1f - rangeVariation, 1f + rangeVariation);
         firingMaxRange *= Random.Range(1f - rangeVariation, 1f + rangeVariation);
     }
-	
-    void UpdateCooldown ()
+
+    public void OnShoot ()
     {
-        if (firingCooldown > 0f)
-        {
-            firingCooldown -= Time.deltaTime;
-            if (firingCooldown <= 0f)
-            {
-                animator.SetBool("Firing", false);
-            }
-        }
+        rigidBody.velocity = Vector2.zero;
+        animator.SetBool("Firing", true);
     }
 
-    void ShootFireball ()
+    public void OnReload ()
     {
-        if (firingCooldown <= 0f && !damageable.IsStunned())
-        {
-            Vector2 target;
-            if (PickTarget(out target))
-            {
-                Face(target - (Vector2)transform.position);
-                rigidBody.velocity = Vector2.zero;
-                firingCooldown = firingMaxCooldown;
 
-                shooter.ShootFireballAt(target);
-
-                animator.SetBool("Firing", true);
-            }
-        }
     }
 
     void Face (Vector2 direction)
@@ -99,40 +78,49 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
         }
     }
 
-    bool PickTarget (out Vector2 target)
+    public bool GetTarget (out Vector2 target)
     {
-        Vector2 position = transform.position;
-        target = player.transform.position;
-        float sqrDist = (target - position).sqrMagnitude;
-
-        Vector2 waterPosition = water.GetDropPosition();
-        float sqrNorm = (waterPosition - position).sqrMagnitude;
-        if(sqrNorm < sqrDist)
+        if(!damageable.Stunned)
         {
-            target = waterPosition;
-            sqrDist = sqrNorm;
-        }
+            animator.SetBool("Firing", false);
 
-        GameObject[] projectiles = GameObject.FindGameObjectsWithTag("PlayerProjectile");
-        foreach (GameObject projectile in projectiles)
-        {
-            Rigidbody2D projectileBody = projectile.GetComponent<Rigidbody2D>();
-            if (projectileBody)
+            Vector2 position = transform.position;
+            target = player.transform.position;
+            float sqrDist = (target - position).sqrMagnitude;
+
+            float sqrNorm = (water.GetDropPosition() - position).sqrMagnitude;
+            if (sqrNorm < sqrDist)
             {
-                Vector2 toThis = transform.position - projectile.transform.position;
-                Vector2 aim = projectileBody.velocity.normalized;
-                float deviation = Vector2.Dot(toThis, aim);
-                sqrNorm = toThis.sqrMagnitude;
-                float threshold = Mathf.Sqrt(sqrNorm - 1f);
-                if (deviation >= threshold && sqrNorm < sqrDist)
+                target = water.GetDropPosition();
+                sqrDist = sqrNorm;
+            }
+
+            GameObject[] projectiles = GameObject.FindGameObjectsWithTag("PlayerProjectile");
+            foreach (GameObject projectile in projectiles)
+            {
+                Rigidbody2D projectileBody = projectile.GetComponent<Rigidbody2D>();
+                if (projectileBody)
                 {
-                    target = projectile.transform.position;
-                    sqrDist = sqrNorm;
+                    Vector2 toThis = transform.position - projectile.transform.position;
+                    Vector2 aim = projectileBody.velocity.normalized;
+                    float deviation = Vector2.Dot(toThis, aim);
+                    sqrNorm = toThis.sqrMagnitude;
+                    float threshold = Mathf.Sqrt(sqrNorm - 1f);
+                    if (deviation >= threshold && sqrNorm < sqrDist)
+                    {
+                        target = projectile.transform.position;
+                        sqrDist = sqrNorm;
+                    }
                 }
             }
+            float aggroDist = Random.Range(firingMinRange, firingMaxRange);
+            return aggroDist * aggroDist > sqrDist;
         }
-        float aggroDist = Random.Range(firingMinRange, firingMaxRange);
-        return aggroDist * aggroDist > sqrDist;
+        else
+        {
+            target = new Vector2();
+            return false;
+        }
     }
 
     public void OnDeath()
@@ -143,36 +131,24 @@ public class FirebenderController : MonoBehaviour, IDeathListener {
         boxCollider.size = new Vector2(2f, 1f);
         boxCollider.offset = new Vector2(0f, -0.5f);
 
-        GameController.GetGameManager().NotifyDeath();
+        GameController.GameManager.NotifyDeath();
 
         Destroy(gameObject, 5f);
     }
 
-	void Update ()
-    {
-        if (damageable.IsAlive())
-        {
-            UpdateCooldown();
-            ShootFireball();
-        }
-    }
-
     void FixedUpdate ()
     {
-        if (damageable.IsAlive())
+        Vector2 toPlayer = player.transform.position - transform.position;
+        if (!shooter.CoolingDown && !damageable.Stunned)
         {
-            Vector2 toPlayer = player.transform.position - transform.position;
-            if (firingCooldown <= 0f && !damageable.IsStunned())
-            {
-                Face(toPlayer);
-                rigidBody.AddForce(Vector2.right * force * Mathf.Sign(toPlayer.x));
-            }
+            Face(toPlayer);
+            rigidBody.AddForce(Vector2.right * force * Mathf.Sign(toPlayer.x));
         }
     }
 
     void LateUpdate()
     {
-        if (damageable.IsAlive())
+        if (damageable.Alive)
         {
             float speed = rigidBody.velocity.magnitude;
             if (speed > maxSpeed)

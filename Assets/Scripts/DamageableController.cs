@@ -47,7 +47,7 @@ public class DamageableController : MonoBehaviour {
 
     public void OnHit (int damage, Vector2 force)
     {
-        if(IsAlive())
+        if(Alive)
         {
             if (hitCooldown <= 0f) //Invincible or not
             {
@@ -92,9 +92,10 @@ public class DamageableController : MonoBehaviour {
     {
         if (deathListener)
         {
-            if (deathListener is IDeathListener)
+            IDeathListener listener = deathListener as IDeathListener;
+            if (listener != null)
             {
-                IDeathListener listener = deathListener as IDeathListener;
+                
                 listener.OnDeath();
             }
             else
@@ -104,23 +105,23 @@ public class DamageableController : MonoBehaviour {
         }
     }
 
-    public bool IsStunned ()
+    public bool Stunned
     {
-        return hitCooldown > 0f;
+        get { return currentHP == 0 || hitCooldown > 0f; }
     }
 
-    public bool IsAlive()
+    public bool Alive
     {
-        return currentHP > 0;
+        get { return currentHP > 0; }
     }
 
-    public int GetCurrentHP()
+    public int CurrentHP
     {
-        return currentHP;
+        get { return currentHP; }
     }
 
-    public int GetMaxHP()
+    public int MaxHP
     {
-        return maximumHP;
+        get { return maximumHP; }
     }
 }
