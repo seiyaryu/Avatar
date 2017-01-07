@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class FireballController : MonoBehaviour {
+public class Fireball : MonoBehaviour {
 
     [Header("Heat")]
 
@@ -25,14 +25,14 @@ public class FireballController : MonoBehaviour {
     private CircleCollider2D circleCollider;
 
     private ParticleSystem waterParticles;
-    private WaterFlaskController waterDrop;
+    private WaterFlask waterDrop;
 
     void Awake ()
     {
         GameObject player = GameController.GameManager.Player;
         if (player)
         {
-            waterDrop = player.GetComponentInChildren<WaterFlaskController>();
+            waterDrop = player.GetComponentInChildren<WaterFlask>();
             waterParticles = player.GetComponentInChildren<ParticleSystem>();
         }
         circleCollider = GetComponent<CircleCollider2D>();

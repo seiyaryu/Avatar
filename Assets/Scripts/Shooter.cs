@@ -12,10 +12,10 @@ public static class Vector2Extension
     }
 }
 
-public class ShooterController : MonoBehaviour {
+public class Shooter : MonoBehaviour {
 
     [SerializeField]
-    private ProjectileController projectile;
+    private Projectile projectile;
 
     [SerializeField]
     private Transform firingOrigin;
@@ -32,10 +32,15 @@ public class ShooterController : MonoBehaviour {
 
     [SerializeField]
     private MonoBehaviour targeter;
+    private IShooter controller;
 
-    void Update()
+    void Awake ()
     {
-        IShooterController controller = targeter as IShooterController;
+        controller = targeter as IShooter;
+    }
+
+    void Update ()
+    {
         if (controller != null)
         {
             if (firingTimer > 0f)
@@ -43,7 +48,7 @@ public class ShooterController : MonoBehaviour {
                 firingTimer -= Time.deltaTime;
                 controller.OnReload();
             }
-            else if (targeter)
+            else
             {
 
                 Vector2 target;
@@ -54,16 +59,12 @@ public class ShooterController : MonoBehaviour {
                     firingTimer = firingCooldown;
                 }
             }
-            else
-            {
-                targeter = null;
-            }
         }
     }
 
-    void ShootAt(Vector2 target)
+    void ShootAt (Vector2 target)
     {
-        ProjectileController instance = (ProjectileController)Instantiate(projectile, firingOrigin.position, projectile.transform.rotation);
+        Projectile instance = (Projectile)Instantiate(projectile, firingOrigin.position, projectile.transform.rotation);
 
         instance.Direction = (target - (Vector2)firingOrigin.position).Rotate(Random.Range(-angularDeviation, angularDeviation));
         instance.Speed = instance.Speed * Random.Range(1f - speedDeviation, 1f + speedDeviation);

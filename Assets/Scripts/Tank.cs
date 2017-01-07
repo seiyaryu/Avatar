@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TankController : MonoBehaviour, IShooterController {
+public class Tank : MonoBehaviour, IShooter {
 
     [SerializeField]
     private HingeJoint2D frontWheelJoint;
@@ -19,7 +19,7 @@ public class TankController : MonoBehaviour, IShooterController {
     private Rigidbody2D rigidBody;
 
     private Transform player;
-    private WaterFlaskController water;
+    private WaterFlask water;
 
     [SerializeField]
     int collisionDamage = 1;
@@ -50,37 +50,60 @@ public class TankController : MonoBehaviour, IShooterController {
     private Collider2D pipeCollider;
     [SerializeField]
     private ParticleSystem pipeFumes;
+    [SerializeField]
+    private float overheatCooldownDuration;
+    [SerializeField]
+    private int overHeating;
+    private int heat;
 
-    private ShooterController shooter;
+    private Shooter shooter;
 
     [SerializeField]
     private float minFiringAngle;
     [SerializeField]
     private float maxFiringAngle;
 
+    [SerializeField]
+    private GameObject pilot;
+    [SerializeField]
+    private float pilotSpeed;
+    [SerializeField]
+    private float pilotUpPosition;
+    [SerializeField]
+    private float pilotDownPosition;
+
     void Start ()
     {
         player = GameController.GameManager.Player.transform;
-        water = GameController.GameManager.Player.GetComponentInChildren<WaterFlaskController>();
+        water = GameController.GameManager.Player.GetComponentInChildren<WaterFlask>();
     }
 
     void Awake()
     {
         rigidBody = GetComponent<Rigidbody2D>();
 
-        shooter = GetComponent<ShooterController>();
+        shooter = GetComponent<Shooter>();
 
         chargeDuration += chargeRestDuration;
         chargeWarmUpDuration += chargeDuration;
         chargeCooldownDuration += chargeWarmUpDuration;
 
         chargeTimer = chargeCooldownDuration;
+
+        heat = 0;
     }
 	
 	void Update ()
     {
-        Orient();
-        Charge();
+        if (heat > 0)
+        {
+            OverHeat();
+        }
+        else
+        {
+            Orient();
+            Charge();
+        }
 	}
 
     void Orient ()
@@ -166,7 +189,11 @@ public class TankController : MonoBehaviour, IShooterController {
         }
     }
 
-    void EmitFumes()
+    void OverHeat ()
+    {
+    }
+
+    void EmitFumes ()
     {
         bool blockedByIce = false;
         if (water.Frozen)
@@ -180,10 +207,14 @@ public class TankController : MonoBehaviour, IShooterController {
         if (!blockedByIce)
         {
             pipeFumes.Emit(150);
+            if (heat > 0)
+            {
+                --heat;
+            }
         }
-        else
+        else if (heat < overHeating)
         {
-
+            ++heat;
         }
     }
 
@@ -230,12 +261,17 @@ public class TankController : MonoBehaviour, IShooterController {
     {
         if (collision.gameObject.CompareTag("Player"))
         {
-            DamageableController damageable = collision.gameObject.GetComponent<DamageableController>();
+            Damageable damageable = collision.gameObject.GetComponent<Damageable>();
             if (damageable)
             {
 
                 damageable.OnHit(GetDamage(collision), GetRepelForce(collision));
             }
         }
+    }
+
+    public bool OverHeating
+    {
+        get { return heat >= overHeating; }
     }
 }

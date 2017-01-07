@@ -13,7 +13,7 @@ public class Wave {
     public Spawn[] spawns;
 }
 
-public class SpawnerController : MonoBehaviour {
+public class Spawner : MonoBehaviour {
 
     public Wave[] waves;
 
@@ -74,15 +74,20 @@ public class SpawnerController : MonoBehaviour {
     void SpawnFirebender ()
     {
         GameObject instance = (GameObject) Instantiate(firebender, waves[waveIndex].spawns[spawnIndex].position, Quaternion.identity);
-        FirebenderController firebenderController = instance.GetComponent<FirebenderController>();
-        if(firebenderController)
+        Firebender body = instance.GetComponent<Firebender>();
+        if (body)
         {
-            firebenderController.Player = GameController.GameManager.Player;
+            body.Player = GameController.GameManager.Player;
         }
-        DamageableController damageableController = instance.GetComponent<DamageableController>();
-        if(damageableController)
+        FirebenderTargeter targeter = instance.GetComponent<FirebenderTargeter>();
+        if (targeter)
         {
-            damageableController.gameCanvas = GameController.GameManager.MainCanvas.transform;
+            targeter.Player = GameController.GameManager.Player;
+        }
+        Damageable damageable = instance.GetComponent<Damageable>();
+        if (damageable)
+        {
+            damageable.gameCanvas = GameController.GameManager.MainCanvas.transform;
         }    
     }
 }

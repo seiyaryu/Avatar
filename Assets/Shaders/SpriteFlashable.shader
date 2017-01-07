@@ -5,7 +5,7 @@
 		[PerRendererData] _MainTex("Sprite Texture", 2D) = "white" {}
 		_Color("Color", Color) = (1,1,1,1)
 		[MaterialToggle] PixelSnap("Pixel snap", Float) = 0
-		[MaterialToggle] _Flash("Flash", Float) = 0
+		_Flash("Flash", Range(0,1)) = 0
 	}
 	SubShader
 	{
@@ -77,7 +77,7 @@
 			fixed4 frag(v2f IN) : SV_Target
 			{
 				fixed4 c = SampleSpriteTexture(IN.texcoord);
-				c.rgb = (c.rgb * (1 - _Flash) + _Flash) * IN.color.rgb * c.a;
+				c.rgb = (c.rgb * (1 - _Flash) + _Flash * IN.color.rgb) * c.a;
 				return c;
 			}
 			ENDCG

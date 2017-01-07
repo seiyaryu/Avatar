@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class ProjectileController : MonoBehaviour {
+public class Projectile : MonoBehaviour {
 
     [SerializeField]
     private float speed = 5.0f;
@@ -56,7 +56,7 @@ public class ProjectileController : MonoBehaviour {
         if (hit)
         {
             // Can this stuff be damaged ?
-            DamageableController otherHP = other.gameObject.GetComponent<DamageableController>();
+            Damageable otherHP = other.gameObject.GetComponent<Damageable>();
             if (otherHP)
             {
                 Vector2 toOther = other.gameObject.transform.position - transform.position;

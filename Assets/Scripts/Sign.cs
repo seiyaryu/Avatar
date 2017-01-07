@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class SignController : MonoBehaviour {
+public class Sign : MonoBehaviour {
 
     public string text;
     public Vector2 size;

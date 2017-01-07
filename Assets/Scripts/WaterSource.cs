@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class WaterSourceController : MonoBehaviour {
+public class WaterSource : MonoBehaviour {
 
     private BoxCollider2D box;
     private float area;

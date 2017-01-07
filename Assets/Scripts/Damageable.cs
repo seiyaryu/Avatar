@@ -2,7 +2,9 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public class DamageableController : MonoBehaviour {
+public class Damageable : MonoBehaviour {
+
+    [Header("HP")]
 
     public int maximumHP = 10;
     private int currentHP;
@@ -10,11 +12,14 @@ public class DamageableController : MonoBehaviour {
     public float hitMaxCooldown = 1.5f;
     private float hitCooldown = 0f;
 
-    public Transform gameCanvas;
+    [Header("Listeners")]
 
     public MonoBehaviour deathListener;
     public MonoBehaviour damageListener;
 
+    [Header("Printing Damage")]
+
+    public Transform gameCanvas;
     public PopupController damagePopup;
     public Transform popupOrigin;
 

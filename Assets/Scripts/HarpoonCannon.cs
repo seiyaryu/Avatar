@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HarpoonCannonController : MonoBehaviour, IShooterController {
+public class HarpoonCannon : MonoBehaviour, IShooter {
 
     [SerializeField]
     private Transform cannon;

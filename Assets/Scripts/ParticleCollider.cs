@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ParticleColliderController : MonoBehaviour {
+public class ParticleCollider : MonoBehaviour {
 
     static float circleSAG = 0.05f;
 

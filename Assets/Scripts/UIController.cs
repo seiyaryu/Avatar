@@ -21,8 +21,8 @@ public class UIController : MonoBehaviour {
 
     [Header("References")]
 
-    public DamageableController healthBar;
-    public WaterFlaskController waterFlask;
+    public Damageable healthBar;
+    public WaterFlask waterFlask;
 
     void Awake ()
     {

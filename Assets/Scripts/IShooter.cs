@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public interface IShooterController
+public interface IShooter
 {
     bool GetTarget(out Vector2 target);
 

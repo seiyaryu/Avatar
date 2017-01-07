@@ -27,7 +27,7 @@ public class GameController : MonoBehaviour {
     [SerializeField]
     private Camera viewpoint;
 
-    private SpawnerController spawner;
+    private Spawner spawner;
 
     public int EnemyCount
     {
@@ -56,7 +56,7 @@ public class GameController : MonoBehaviour {
         {
             Destroy(gameObject);
         }
-        spawner = GetComponent<SpawnerController>();
+        spawner = GetComponent<Spawner>();
     }
 
     void Update ()

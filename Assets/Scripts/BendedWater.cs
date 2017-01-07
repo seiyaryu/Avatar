@@ -5,6 +5,6 @@ public class BendedWaterController : MonoBehaviour {
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        GameObject.Find("WaterFlask").GetComponent<WaterFlaskController>().OnWhipAttack(other);
+        GameObject.Find("WaterFlask").GetComponent<WaterFlask>().OnWhipAttack(other);
     }
 }

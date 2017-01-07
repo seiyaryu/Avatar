@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HarpoonController : MonoBehaviour
+public class Harpoon : MonoBehaviour
 {
     [SerializeField]
     private float burrowingSlowdown = 0.9f;
@@ -12,11 +12,11 @@ public class HarpoonController : MonoBehaviour
     private float lifeTimeOnStop = 3f;
 
     private Rigidbody2D rigidBody;
-    private WaterFlaskController water;
+    private WaterFlask water;
 
     void Awake()
     {
-        water = GameController.GameManager.Player.GetComponentInChildren<WaterFlaskController>();
+        water = GameController.GameManager.Player.GetComponentInChildren<WaterFlask>();
         rigidBody = GetComponent<Rigidbody2D>();
     }
 
@@ -25,7 +25,7 @@ public class HarpoonController : MonoBehaviour
         if (rigidBody.bodyType == RigidbodyType2D.Kinematic && rigidBody.velocity.sqrMagnitude < stopThreshold)
         {
             rigidBody.bodyType = RigidbodyType2D.Dynamic;
-            Destroy(gameObject.GetComponent<ProjectileController>());
+            Destroy(gameObject.GetComponent<Projectile>());
             Destroy(gameObject, lifeTimeOnStop);
         }
     }

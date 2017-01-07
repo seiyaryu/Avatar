@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class IceShardController : MonoBehaviour {
+public class IceShard : MonoBehaviour {
 
     public Transform iceShatterAnimation;
 

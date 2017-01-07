@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class WaterFlaskController : MonoBehaviour, IDamageListener {
+public class WaterFlask : MonoBehaviour, IDamageListener {
 
     [Tooltip("Maximum number of water particles")]
     public int maximumWater = 200;
@@ -103,7 +103,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
     [Header("Attacking")]
 
     [Tooltip("Ice shard Prefab")]
-    public ProjectileController iceShard;
+    public Projectile iceShard;
     [Tooltip("How much time between each ice shards throw ?")]
     public float iceShardMaxCooldown = 0.5f;
     [Tooltip("How many water particles cost each ice shard ?")]
@@ -143,7 +143,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
     private bool attacking = false;
 
     private Animator animator;
-    private DamageableController damageable;
+    private Damageable damageable;
 
     [Header("Audio")]
 
@@ -181,7 +181,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
         sqrOutsiderRange = outsiderSpacing * outsiderSpacing * sqrParticleSize;
 
         animator = GetComponentInParent<Animator>();
-        damageable = GetComponentInParent<DamageableController>();
+        damageable = GetComponentInParent<Damageable>();
 
         // We will uniformly sample directions in 2D on the unit circle
         directions = new Vector2[directionCount];
@@ -687,7 +687,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
                 GameObject[] sources = GameObject.FindGameObjectsWithTag("WaterSource");
                 foreach (GameObject source in sources)
                 {
-                    source.GetComponent<WaterSourceController>().EmitWater(waterDrop.position, 10f, spawns);
+                    source.GetComponent<WaterSource>().EmitWater(waterDrop.position, 10f, spawns);
                 }
 
                 // We do not want to spawn more particles than allowed to
@@ -794,7 +794,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
             Vector2 normal = direction.Rotate(0.5f * Mathf.PI).normalized;
 
             // Spawn ice shard
-            ProjectileController iceShardInstance = (ProjectileController)Instantiate(iceShard, center + Random.Range(-0.5f, 0.5f) * normal, Quaternion.identity);
+            Projectile iceShardInstance = (Projectile)Instantiate(iceShard, center + Random.Range(-0.5f, 0.5f) * normal, Quaternion.identity);
 
             iceShardInstance.Direction = direction;
 
@@ -810,7 +810,7 @@ public class WaterFlaskController : MonoBehaviour, IDamageListener {
     {
         if (!frozen && attacking && other.gameObject.CompareTag("Enemy") && avgVelocity.sqrMagnitude > whipSpeedThreshold)
         {
-            DamageableController damageable = other.gameObject.GetComponent<DamageableController>();
+            Damageable damageable = other.gameObject.GetComponent<Damageable>();
             if (damageable)
             {
                 int damage = Mathf.FloorToInt(whipDamage *  Mathf.Clamp(2f * ((float)currentWater / maximumWater - 0.3f), 0f, 1f));

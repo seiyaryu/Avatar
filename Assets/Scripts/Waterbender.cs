@@ -2,13 +2,13 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public class WaterbenderController : MonoBehaviour, IDeathListener {
+public class Waterbender : MonoBehaviour, IDeathListener {
 
     private Rigidbody2D rigidBody;
     private Animator animator;
     private SpriteRenderer spriteRenderer;
-    private DamageableController damageable;
-    private WaterFlaskController water;
+    private Damageable damageable;
+    private WaterFlask water;
 
     public float maxSpeed = 5.0f;
     public float moveForce = 10.0f;
@@ -38,8 +38,8 @@ public class WaterbenderController : MonoBehaviour, IDeathListener {
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
-        damageable = GetComponent<DamageableController>();
-        water = GetComponentInChildren<WaterFlaskController>();
+        damageable = GetComponent<Damageable>();
+        water = GetComponentInChildren<WaterFlask>();
 
         groundMask = 1 << LayerMask.NameToLayer("Scene");
         waterMask  = 1 << LayerMask.NameToLayer("Water");
