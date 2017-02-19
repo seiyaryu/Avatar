@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class BendedWaterController : MonoBehaviour {
+public class BendedWater : MonoBehaviour {
 
     void OnTriggerEnter2D(Collider2D other)
     {

@@ -6,22 +6,31 @@ public class Damageable : MonoBehaviour {
 
     [Header("HP")]
 
-    public int maximumHP = 10;
+    [SerializeField]
+    private int maximumHP = 10;
     private int currentHP;
 
-    public float hitMaxCooldown = 1.5f;
-    private float hitCooldown = 0f;
+    [SerializeField]
+    private float hitCooldown = 1.5f;
+    private float hitTimer = 0f;
 
     [Header("Listeners")]
 
-    public MonoBehaviour deathListener;
-    public MonoBehaviour damageListener;
+    [SerializeField]
+    private MonoBehaviour deathListener;
+    private IDeathListener deathController;
+    [SerializeField]
+    private MonoBehaviour damageListener;
+    private IDamageListener damageController;
 
     [Header("Printing Damage")]
 
-    public Transform gameCanvas;
-    public PopupController damagePopup;
-    public Transform popupOrigin;
+    [SerializeField]
+    private Transform gameCanvas;
+    [SerializeField]
+    private Popup damagePopup;
+    [SerializeField]
+    private Transform popupOrigin;
 
     private Rigidbody2D rigidBody;
     private Animator animator;
@@ -31,20 +40,25 @@ public class Damageable : MonoBehaviour {
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
 
+        deathController = deathListener as IDeathListener;
+        damageController = damageListener as IDamageListener;
+
         currentHP = maximumHP;
+
+        if (animator) animator.SetFloat("CooldownSpeed", 1f / hitCooldown);
     }
 
     void Update ()
     {
-        if(hitCooldown > 0f)
+        if (hitTimer > 0f)
         {
-            hitCooldown -= Time.deltaTime;
+            hitTimer -= Time.deltaTime;
         }
     }
 
     void PrintDamage(int damage)
     {
-        PopupController popup = Instantiate(damagePopup); //Pop damage inflicted
+        Popup popup = Instantiate(damagePopup); //Pop damage inflicted
         popup.origin = popupOrigin;
         popup.transform.SetParent(gameCanvas, false);
         popup.Text = (-damage).ToString();
@@ -54,16 +68,19 @@ public class Damageable : MonoBehaviour {
     {
         if(Alive)
         {
-            if (hitCooldown <= 0f) //Invincible or not
+            if (hitTimer <= 0f) //Invincible or not
             {
                 if (rigidBody) rigidBody.AddForce(force, ForceMode2D.Impulse);
+
                 currentHP -= damage;
+
+                PrintDamage(damage);
+
                 if (currentHP > 0) //Still alive
                 {
                     if (animator) animator.SetTrigger("Hurt");
-                    hitCooldown = hitMaxCooldown;
 
-                    PrintDamage(damage);
+                    hitTimer = hitCooldown;
 
                     OnDamaged(damage);
                 }
@@ -79,40 +96,28 @@ public class Damageable : MonoBehaviour {
 
     void OnDamaged(int damage)
     {
-        if (damageListener)
+        if (damageController != null)
         {
-            if (damageListener is IDamageListener)
-            {
-                IDamageListener listener = damageListener as IDamageListener;
-                listener.OnDamaged(damage);
-            }
-            else
-            {
-                damageListener = null;
-            }
+            damageController.OnDamaged(damage);
         }
     }
 
     void OnDeath()
     {
-        if (deathListener)
+        if (deathController != null)
         {
-            IDeathListener listener = deathListener as IDeathListener;
-            if (listener != null)
-            {
-                
-                listener.OnDeath();
-            }
-            else
-            {
-                deathListener = null;
-            }
+            deathController.OnDeath();
         }
+    }
+
+    public Transform GameCanvas
+    {
+        set { gameCanvas = value; }
     }
 
     public bool Stunned
     {
-        get { return currentHP == 0 || hitCooldown > 0f; }
+        get { return currentHP <= 0 || hitTimer > 0f; }
     }
 
     public bool Alive

@@ -2,42 +2,35 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public class Firebender : MonoBehaviour, IDeathListener {
-
-    [Header("Player")]
-
-    private GameObject player;
-
-    public GameObject Player
-    {
-        set { player = value; }
-    }
+public class Firebender : FirebenderBase, IDeathListener {
 
     [Header("Moving")]
 
     public float force = 7f;
     public float maxSpeed = 2f;
+    public AudioSource walkingSound;
 
     private Rigidbody2D rigidBody;
     private BoxCollider2D boxCollider;
-    private Damageable damageable;
     private SpriteRenderer spriteRenderer;
+    private Animator animator;
     private Shooter shooter;
 
-    [Header("Audio")]
+    [Header("Dying")]
 
-    public AudioSource walkSound;
-    public AudioSource hurtSound;
+    [SerializeField]
+    private Vector2 dyingColliderOffset = new Vector2(0f, -0.5f);
+    [SerializeField]
+    private Vector2 dyingColliderSize = new Vector2(2f, 1f);
 
-    public AudioClip[] hurtSoundClips;
-    public AudioClip[] deathSoundClips;
-
-    void Awake ()
+    protected override void Awake ()
     {
+        base.Awake();
         rigidBody = GetComponent<Rigidbody2D>();
         boxCollider = GetComponent<BoxCollider2D>();
         damageable = GetComponent<Damageable>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        animator = GetComponent<Animator>();
         shooter = GetComponent<Shooter>();
     }
 
@@ -56,8 +49,8 @@ public class Firebender : MonoBehaviour, IDeathListener {
         gameObject.layer = LayerMask.NameToLayer("Background");
         spriteRenderer.sortingOrder = -1;
 
-        boxCollider.size = new Vector2(2f, 1f);
-        boxCollider.offset = new Vector2(0f, -0.5f);
+        boxCollider.size = dyingColliderSize;
+        boxCollider.offset = dyingColliderOffset;
 
         GameController.GameManager.NotifyDeath();
 
@@ -66,7 +59,7 @@ public class Firebender : MonoBehaviour, IDeathListener {
 
     void FixedUpdate ()
     {
-        Vector2 toPlayer = player.transform.position - transform.position;
+        Vector2 toPlayer = player.position - transform.position;
         if (!shooter.CoolingDown && !damageable.Stunned)
         {
             Face(toPlayer);
@@ -86,20 +79,19 @@ public class Firebender : MonoBehaviour, IDeathListener {
         }
     }
 
+    public override void OnShoot(Projectile projectile)
+    {
+        animator.SetBool("Firing", true);
+        rigidBody.velocity = Vector2.zero;
+    }
+
+    public override void OnReadyToShoot()
+    {
+        animator.SetBool("Firing", false);
+    }
+
     void PlayWalkSound ()
     {
-        walkSound.Play();
-    }
-
-    void PlayHurtSound()
-    {
-        hurtSound.clip = hurtSoundClips[Random.Range(0, hurtSoundClips.Length)];
-        hurtSound.Play();
-    }
-
-    void PlayDeathSound()
-    {
-        hurtSound.clip = deathSoundClips[Random.Range(0, deathSoundClips.Length)];
-        hurtSound.Play();
+        walkingSound.Play();
     }
 }

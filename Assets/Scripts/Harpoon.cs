@@ -11,6 +11,9 @@ public class Harpoon : MonoBehaviour
     [SerializeField]
     private float lifeTimeOnStop = 3f;
 
+    [SerializeField]
+    private GameObject iceShatterAnimation;
+
     private Rigidbody2D rigidBody;
     private WaterFlask water;
 
@@ -25,8 +28,17 @@ public class Harpoon : MonoBehaviour
         if (rigidBody.bodyType == RigidbodyType2D.Kinematic && rigidBody.velocity.sqrMagnitude < stopThreshold)
         {
             rigidBody.bodyType = RigidbodyType2D.Dynamic;
+            rigidBody.velocity = Vector3.zero;
             Destroy(gameObject.GetComponent<Projectile>());
             Destroy(gameObject, lifeTimeOnStop);
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.gameObject.CompareTag("Water") && water.Frozen)
+        {
+            Instantiate(iceShatterAnimation, transform.position, transform.rotation);
         }
     }
 

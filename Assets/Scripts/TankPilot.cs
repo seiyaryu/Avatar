@@ -2,60 +2,76 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TankPilot : FirebenderTargeter
+public class TankPilot : FirebenderBase, IDeathListener
 {
+    [Header("Tank")]
 
     [SerializeField]
-    private Transform pilot;
-
-    private float pilotTimer;
-
+    private Hatch hatch;
     [SerializeField]
-    private Animator pilotAnimator;
+    private Turret turret;
 
+    private SpriteRenderer spriteRenderer;
+    private Animator animator;
+    private BoxCollider2D boxCollider;
 
-    [SerializeField]
-    private float pilotUpPosition;
-    [SerializeField]
-    private float pilotDownPosition;
-    [SerializeField]
-    private float pilotSpeed = 5f;
-
-    private GameObject player;
-
-    void Start()
+    protected override void Awake ()
     {
-        player = GameController.GameManager.Player;
+        base.Awake();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        animator = GetComponent<Animator>();
+        boxCollider = GetComponent<BoxCollider2D>();
     }
 
-    protected override void Awake()
+    void Update ()
     {
-        Vector3 position = pilot.transform.localPosition;
-        position.y = pilotDownPosition;
-        pilot.transform.localPosition = position;
+        if (boxCollider) boxCollider.enabled = hatch.Open;
     }
 
-    public override bool GetTarget(out Vector2 target)
+    public void MoveIn ()
     {
-        if (pilot.localPosition.y < pilotUpPosition)
+        spriteRenderer.sortingOrder = -1;
+    }
+
+    public void MoveOut()
+    {
+        spriteRenderer.sortingOrder = 1;
+    }
+
+    void Orient (Vector2 target)
+    {
+        Vector3 toTarget = transform.InverseTransformVector((Vector3)(target) - transform.position);
+        if (toTarget.x > 0)
         {
-            float move = Mathf.Min(pilotSpeed * Time.deltaTime, pilotUpPosition - pilot.localPosition.x);
-            pilot.localPosition += Vector3.up * move;
+            Vector3 scale = transform.localScale;
+            scale.x *= -1f;
+            transform.localScale = scale;
+        }
+    }
+
+    public override bool GetTarget (out Vector2 target)
+    {
+        if (hatch.Open && base.GetTarget(out target))
+        {
+            Orient(target);
+            return true;
         }
         else
         {
-            return base.GetTarget(out target);
+            target = Vector2.zero;
+            return false;
         }
-        target = Vector2.zero;
-        return true;
     }
 
-    public override void OnShoot()
+    public override void OnShoot(Projectile projectile)
     {
-        pilotAnimator.SetTrigger("Firing");
+        animator.SetTrigger("Firing");
     }
 
-    public override void OnReload()
+    public void OnDeath()
     {
+        turret.OnPilotDeath();
+        Destroy(boxCollider);
+        Destroy(gameObject, 5f);
     }
 }

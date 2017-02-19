@@ -81,4 +81,13 @@ public class UIController : MonoBehaviour {
         waterSlider.value = waterFlask.CurrentWater;
         waterSliderFill.color = waterFlask.Frozen ? new Color(0.3f, 0.85f, 0.95f) : new Color(0.05f, 0.45f, 1f);
     }
+
+    public GameObject Player
+    {
+        set
+        {
+            healthBar = value.GetComponent<Damageable>();
+            waterFlask = value.GetComponentInChildren<WaterFlask>();
+        }
+    }
 }

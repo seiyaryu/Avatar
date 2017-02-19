@@ -2,7 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Tank : MonoBehaviour, IShooter {
+public class Tank : MonoBehaviour {
+
+
+    public Transform Player
+    {
+        set { player = value; }
+    }
+    private Transform player;
+
+    [Header("Movement")]
 
     [SerializeField]
     private HingeJoint2D frontWheelJoint;
@@ -12,21 +21,27 @@ public class Tank : MonoBehaviour, IShooter {
     private float wheelRadius;
 
     [SerializeField]
-    private Transform tankBody;
-    [SerializeField]
     private float tankSpeed = 0.5f;
 
     private Rigidbody2D rigidBody;
 
-    private Transform player;
-    private WaterFlask water;
+    [Header("Collision")]
 
     [SerializeField]
     int collisionDamage = 1;
     [SerializeField]
     float repelAmpl = 10f;
+    [SerializeField]
+    private Collider2D frontCollider;
 
-    private float chargeTimer;
+    [Header("Scene Bounds")]
+
+    [SerializeField]
+    private float sceneLeftBound;
+    [SerializeField]
+    private float sceneRightBound;
+
+    [Header("Charge")]
 
     [SerializeField]
     private float chargeCooldownDuration;
@@ -43,68 +58,71 @@ public class Tank : MonoBehaviour, IShooter {
     [SerializeField]
     private float chargeWarmUpSpeed;
 
-    [SerializeField]
-    private Collider2D frontCollider;
+    private float chargeTimer;
+
+    [Header("Engine")]
 
     [SerializeField]
-    private Collider2D pipeCollider;
-    [SerializeField]
-    private ParticleSystem pipeFumes;
-    [SerializeField]
-    private float overheatCooldownDuration;
-    [SerializeField]
-    private int overHeating;
-    private int heat;
+    private Engine engine;
 
-    private Shooter shooter;
+    [Header("Audio")]
 
     [SerializeField]
-    private float minFiringAngle;
+    private AudioSource wheelSound;
     [SerializeField]
-    private float maxFiringAngle;
-
+    private AudioClip movingClip;
     [SerializeField]
-    private GameObject pilot;
+    private AudioClip chargingClip;
     [SerializeField]
-    private float pilotSpeed;
-    [SerializeField]
-    private float pilotUpPosition;
-    [SerializeField]
-    private float pilotDownPosition;
-
-    void Start ()
-    {
-        player = GameController.GameManager.Player.transform;
-        water = GameController.GameManager.Player.GetComponentInChildren<WaterFlask>();
-    }
+    private AudioClip acceleratingClip;
 
     void Awake()
     {
         rigidBody = GetComponent<Rigidbody2D>();
-
-        shooter = GetComponent<Shooter>();
 
         chargeDuration += chargeRestDuration;
         chargeWarmUpDuration += chargeDuration;
         chargeCooldownDuration += chargeWarmUpDuration;
 
         chargeTimer = chargeCooldownDuration;
-
-        heat = 0;
     }
 	
+    void PlayWheelSound ()
+    {
+        if (rigidBody.velocity.x == 0f)
+        {
+            if (wheelSound.isPlaying)
+            {
+                wheelSound.Pause();
+            }
+        }
+        else if (!wheelSound.isPlaying)
+        {
+            wheelSound.Play();
+        }
+    }
+
 	void Update ()
     {
-        if (heat > 0)
-        {
-            OverHeat();
-        }
-        else
-        {
-            Orient();
-            Charge();
-        }
+        Charge();
+        PlayWheelSound();
 	}
+
+    void LateUpdate ()
+    {
+        if (transform.position.x > sceneRightBound)
+        {
+            Vector3 position = transform.position;
+            position.x = sceneRightBound;
+            transform.position = position;
+        }
+        else if (transform.position.x < sceneLeftBound)
+        {
+            Vector3 position = transform.position;
+            position.x = sceneLeftBound;
+            transform.position = position;
+        }
+    }
 
     void Orient ()
     {
@@ -113,34 +131,8 @@ public class Tank : MonoBehaviour, IShooter {
         {
             Vector3 scale = transform.localScale;
             scale.x *= -1f;
+            scale.z *= -1f;
             transform.localScale = scale;
-        }
-    }
-
-    public void OnShoot ()
-    {
-
-    }
-
-    public void OnReload()
-    {
-
-    }
-
-    public bool GetTarget (out Vector2 target)
-    {
-        Vector2 toTarget = shooter.FiringOrigin.position - player.position;
-        toTarget.Normalize();
-        float angle = Mathf.Acos(Vector2.Dot(Vector2.left * transform.localScale.x, toTarget)) * Mathf.Rad2Deg;
-        if(minFiringAngle < angle && angle < maxFiringAngle)
-        {
-            target = player.position;
-            return true;
-        }
-        else
-        {
-            target = new Vector2();
-            return false;
         }
     }
 
@@ -157,7 +149,7 @@ public class Tank : MonoBehaviour, IShooter {
 
     void Charge ()
     {
-        if (chargeTimer > 0f)
+        if (!engine.Overheating && chargeTimer > 0f)
         {
             chargeTimer -= Time.deltaTime;
         }
@@ -165,57 +157,47 @@ public class Tank : MonoBehaviour, IShooter {
         if (chargeTimer < 0f)
         {
             chargeTimer = chargeCooldownDuration;
+            Restart();
         }
         else if (chargeTimer < chargeRestDuration)
         {
             rigidBody.velocity = Vector2.zero;
             SetWheelRotationSpeed(0);
-            EmitFumes();
+            engine.EmitFumes();
         }
         else if (chargeTimer < chargeDuration)
         {
-            rigidBody.velocity = Vector2.right * chargeSpeed * transform.localScale.x;
+            rigidBody.velocity = Vector2.right * chargeSpeed * Orientation;
             SetWheelRotationSpeed(chargeRotationSpeed);
+            if (wheelSound.clip != chargingClip)
+            {
+                wheelSound.clip = chargingClip;
+                wheelSound.volume = 1f;
+            }
         }
         else if (chargeTimer < chargeWarmUpDuration)
         {
-            rigidBody.velocity = Vector2.right * chargeWarmUpSpeed * transform.localScale.x;
+            Orient();
+            rigidBody.velocity = Vector2.right * chargeWarmUpSpeed * Orientation;
             SetWheelRotationSpeed(chargeRotationSpeed);
+            if (wheelSound.clip != acceleratingClip)
+            {
+                wheelSound.clip = acceleratingClip;
+            }
+            wheelSound.volume = (chargeWarmUpDuration - chargeTimer) / (chargeWarmUpDuration - chargeDuration);
         }
         else
         {
-            rigidBody.velocity = Vector2.right * tankSpeed * transform.localScale.x;
+            Orient();
+            rigidBody.velocity = Vector2.right * tankSpeed * Orientation;
             SetWheelRotationSpeed(rigidBody.velocity.x * Mathf.Rad2Deg / wheelRadius);
         }
     }
 
-    void OverHeat ()
+    void Restart ()
     {
-    }
-
-    void EmitFumes ()
-    {
-        bool blockedByIce = false;
-        if (water.Frozen)
-        {
-            Collider2D[] colliders = water.waterDrop.GetComponents<Collider2D>();
-            for (int colliderIdx = 0; !blockedByIce && colliderIdx < colliders.Length; ++colliderIdx)
-            {
-                blockedByIce |= pipeCollider.IsTouching(colliders[colliderIdx]);
-            }
-        }
-        if (!blockedByIce)
-        {
-            pipeFumes.Emit(150);
-            if (heat > 0)
-            {
-                --heat;
-            }
-        }
-        else if (heat < overHeating)
-        {
-            ++heat;
-        }
+        engine.Restart();
+        wheelSound.clip = movingClip;
     }
 
     bool HitFront (ContactPoint2D[] contacts)
@@ -259,19 +241,38 @@ public class Tank : MonoBehaviour, IShooter {
 
     void OnCollisionEnter2D(Collision2D collision)
     {
+        OnCollisionStay2D(collision);
+    }
+
+    void OnCollisionStay2D(Collision2D collision)
+    {
         if (collision.gameObject.CompareTag("Player"))
         {
             Damageable damageable = collision.gameObject.GetComponent<Damageable>();
             if (damageable)
             {
-
                 damageable.OnHit(GetDamage(collision), GetRepelForce(collision));
             }
         }
     }
 
-    public bool OverHeating
+    public bool Charging
     {
-        get { return heat >= overHeating; }
+        get { return chargeTimer < chargeWarmUpDuration; }
+    }
+
+    public float Orientation
+    {
+        get { return Mathf.Sign(transform.localScale.x); }
+    }
+
+    public float SceneLeftBound
+    {
+        set { sceneLeftBound = value; }
+    }
+
+    public float SceneRightBound
+    {
+        set { sceneRightBound = value; }
     }
 }

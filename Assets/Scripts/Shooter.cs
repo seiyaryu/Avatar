@@ -47,6 +47,10 @@ public class Shooter : MonoBehaviour {
             {
                 firingTimer -= Time.deltaTime;
                 controller.OnReload();
+                if (firingTimer <= 0f)
+                {
+                    controller.OnReadyToShoot();
+                }
             }
             else
             {
@@ -54,20 +58,22 @@ public class Shooter : MonoBehaviour {
                 Vector2 target;
                 if (controller.GetTarget(out target))
                 {
-                    ShootAt(target);
-                    controller.OnShoot();
+                    controller.OnShoot(ShootAt(target));
                     firingTimer = firingCooldown;
                 }
             }
         }
     }
 
-    void ShootAt (Vector2 target)
+    Projectile ShootAt (Vector2 target)
     {
-        Projectile instance = (Projectile)Instantiate(projectile, firingOrigin.position, projectile.transform.rotation);
+        Vector2 origin = firingOrigin.position;
+        Projectile instance = (Projectile)Instantiate(projectile, origin, projectile.transform.rotation);
 
-        instance.Direction = (target - (Vector2)firingOrigin.position).Rotate(Random.Range(-angularDeviation, angularDeviation));
+        instance.Direction = (target - origin).Rotate(Random.Range(-angularDeviation, angularDeviation));
         instance.Speed = instance.Speed * Random.Range(1f - speedDeviation, 1f + speedDeviation);
+
+        return instance;
     }
 
     public Transform FiringOrigin

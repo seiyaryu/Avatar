@@ -2,6 +2,8 @@
 using UnityEngine.UI;
 using System.Collections;
 
+
+
 public class Waterbender : MonoBehaviour, IDeathListener {
 
     private Rigidbody2D rigidBody;
@@ -10,28 +12,54 @@ public class Waterbender : MonoBehaviour, IDeathListener {
     private Damageable damageable;
     private WaterFlask water;
 
-    public float maxSpeed = 5.0f;
-    public float moveForce = 10.0f;
-    public float jumpForce = 10.0f;
-    public float walkingThreshold = 0.2f;
+    [Header("Running")]
 
-    public float grounderPosition = -1f;
-    public float grounderHeight = 0.1f;
-    public float grounderWidth = 0.2f;
+    [SerializeField]
+    private float moveForce = 10.0f;
+    [SerializeField]
+    private float maxSpeed = 5.0f;
+    [SerializeField]
+    private float walkingThreshold = 0.2f;
+
+    private float move = 0f;
+
+    [Header("Jumping")]
+
+    [SerializeField]
+    private float jumpForce = 10.0f;
+
+    enum JumpState {TakeOff, Jump, None};
+
+    private JumpState jump = JumpState.None;
+    private bool grounded = false;
+
+    [SerializeField]
+    private float grounderPosition = -1f;
+    [SerializeField]
+    private float grounderHeight = 0.1f;
+    [SerializeField]
+    private float grounderWidth = 0.2f;
 
     private int groundMask;
     private int waterMask;
-    private bool jump = false;
-    private bool grounded = false;
-    private float move = 0f;
 
-    public AudioClip snowWalkSoundClip;
-    public AudioClip jumpSoundClip;
-    public AudioClip hurtSoundClip;
-    public AudioClip deathSoundClip;
+    [SerializeField]
+    private int jumpMaxFrameCount = 10;
+    private int jumpFrameCount;
 
-    public AudioSource movementSound;
-    public AudioSource painSound;
+    [Header("Audio")]
+
+    [SerializeField]
+    private AudioSource movementSound;
+    [SerializeField]
+    private AudioSource jumpSound;
+    [SerializeField]
+    private AudioSource painSound;
+
+    [SerializeField]
+    private AudioClip hurtSoundClip;
+    [SerializeField]
+    private AudioClip deathSoundClip;
 
     void Start ()
     {
@@ -43,35 +71,38 @@ public class Waterbender : MonoBehaviour, IDeathListener {
 
         groundMask = 1 << LayerMask.NameToLayer("Scene");
         waterMask  = 1 << LayerMask.NameToLayer("Water");
-
     }
 
     void Update ()
     {
         if (GameController.GameManager.GameOn && damageable.Alive && !water.IsGatheringWater())
         {
-            jump = grounded && Input.GetButtonDown("Jump");
+            jump = Input.GetButtonDown("Jump") ? JumpState.TakeOff : Input.GetButton("Jump") ? JumpState.Jump : JumpState.None;
             move = Input.GetAxis("Horizontal");
         }
         else
         {
-            jump = false;
+            jump = JumpState.None;
             move = 0f;
         }
     }
 
-    void UpdatePhysics()
+    bool IsGrounded ()
     {
         Vector2 position = transform.position;
         Vector2 upperCorner = position + Vector2.up * (grounderPosition + grounderHeight) - Vector2.right * grounderWidth;
         Vector2 lowerCorner = position + Vector2.up * (grounderPosition - grounderHeight) + Vector2.right * grounderWidth;
-        grounded = Physics2D.OverlapArea(upperCorner, lowerCorner, groundMask);
+        bool onGround = Physics2D.OverlapArea(upperCorner, lowerCorner, groundMask);
 
-        if (!grounded && water.Frozen)
+        if (!onGround && water.Frozen)
         {
-            grounded = Physics2D.OverlapArea(upperCorner, lowerCorner, waterMask);
+            onGround = Physics2D.OverlapArea(upperCorner, lowerCorner, waterMask);
         }
+        return onGround;
+    }
 
+    void Run ()
+    {
         if (move * transform.localScale.x < 0)
         {
             Flip();
@@ -79,21 +110,39 @@ public class Waterbender : MonoBehaviour, IDeathListener {
 
         rigidBody.AddForce(Vector2.right * move * moveForce);
 
-        if (jump)
+        animator.SetFloat("RunSpeed", Mathf.Abs(move));
+        animator.SetBool("Walking", Mathf.Abs(move) > walkingThreshold);
+    }
+
+    void Jump ()
+    {
+        bool oldGrounded = grounded;
+        grounded = IsGrounded();
+
+        if (jumpFrameCount > 0)
+        {
+            jumpFrameCount--;
+        }
+
+        if (jump == JumpState.TakeOff && grounded)
+        {
+            rigidBody.AddForce(Vector2.up * jumpForce);
+            jumpFrameCount = jumpMaxFrameCount;
+        }
+        else if (jump == JumpState.Jump && jumpFrameCount > 0)
         {
             rigidBody.AddForce(Vector2.up * jumpForce);
         }
-    }
 
-    void UpdateGraphicsAndSound()
-    {
-        animator.SetFloat("Speed", Mathf.Abs(move));
         animator.SetBool("Jump", !grounded);
-        animator.SetBool("Walking", Mathf.Abs(move) > walkingThreshold);
 
-        if (jump)
+        if (jump == JumpState.TakeOff && grounded)
         {
             PlayJumpSound();
+        }
+        if (!oldGrounded && grounded)
+        {
+            PlayWalkSound();
         }
     }
 
@@ -101,10 +150,10 @@ public class Waterbender : MonoBehaviour, IDeathListener {
     {
         if (GameController.GameManager.GameOn && damageable.Alive)
         {
-            UpdatePhysics();
-            UpdateGraphicsAndSound();
+            Run();
+            Jump();
         }
-        jump = false;
+        jump = JumpState.None;
     }
 
     void LateUpdate ()
@@ -126,14 +175,12 @@ public class Waterbender : MonoBehaviour, IDeathListener {
 
     void PlayWalkSound ()
     {
-        movementSound.clip = snowWalkSoundClip;
         movementSound.Play();
     }
 
     void PlayJumpSound ()
     {
-        movementSound.clip = jumpSoundClip;
-        movementSound.Play();
+        jumpSound.Play();
     }
 
     void PlayHurtSound()

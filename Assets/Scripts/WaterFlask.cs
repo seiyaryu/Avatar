@@ -287,7 +287,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
             float distance = Mathf.Sqrt(sqrDistance);
 
             // If the flask is closed and the particle is close enough from its attractor, then it must disappear and get back in the flask
-            if(!flaskOpen && distance < particles.main.startSize.constant)
+            if (!flaskOpen && distance < particles.main.startSize.constant)
             {
                 buffer[particleIdx].remainingLifetime = -1f;
                 storedWater++;
@@ -311,7 +311,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     }
 
     // Break all clusters
-    void ResetClusters()
+    void ResetClusters ()
     {
         for (int particleIdx = 0; particleIdx < particles.particleCount; particleIdx++)
         {
@@ -321,7 +321,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     }
 
     // Repel and cluster particles
-    void Repel()
+    void Repel ()
     {
         for (int particleIdx = 0; particleIdx < particles.particleCount; particleIdx++)
         {
@@ -731,7 +731,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
             stateCooldown -= Time.deltaTime;
         }
 
-        // Default state when there is no water is melted
+        // Liquid is the default state when there is no water
         if (currentWater == 0)
         {
             frozen = false;
@@ -840,48 +840,51 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
             whipDuration -= Time.deltaTime;
         }
 
-        // If water is frozen, we attack by throwing shards
-        if(frozen)
+        if (flaskOpen)
         {
-            if (Input.GetButton("Attack") && attackCooldown <= 0.0f)
+            // If water is frozen, we attack by throwing shards
+            if (frozen)
             {
-                ShootIceShard();
-            }
-        }
-        // Of not frozen, we whip
-        else
-        {
-            // If not attacking yet
-            if (!attacking)
-            {
-                // Start to attack : speed up water, add attractors, start cooldown for the duration of the attack
-                if (Input.GetButtonDown("Attack") && attackCooldown <= 0.0f)
+                if (Input.GetButton("Attack") && attackCooldown <= 0.0f)
                 {
-                    attacking = true;
-                    attractAmpl *= attractMultiplier;
-                    attractorCount += whipAttractorCount;
-                    whipDuration = whipMaxDuration;
-                    whipSound.Play();
-                    animator.SetTrigger("Attack");
+                    ShootIceShard();
                 }
             }
-            // If whip is over, slow down water, remove attractors, start cooldown to prevent attacking again
-            else if (whipDuration <= 0.0f)
+            // Of not frozen, we whip
+            else
             {
-                attacking = false;
-                attractAmpl /= attractMultiplier;
-                attractorCount -= whipAttractorCount;
-                if (attractors.Count > attractorCount)
+                // If not attacking yet
+                if (!attacking)
                 {
-                    PolygonCollider2D[] colliders = waterDrop.GetComponents<PolygonCollider2D>();
-                    for(int colliderIdx = attractorCount; colliderIdx < attractors.Count; colliderIdx++)
+                    // Start to attack : speed up water, add attractors, start cooldown for the duration of the attack
+                    if (Input.GetButtonDown("Attack") && attackCooldown <= 0.0f)
                     {
-                        Destroy(colliders[colliderIdx]);
+                        attacking = true;
+                        attractAmpl *= attractMultiplier;
+                        attractorCount += whipAttractorCount;
+                        whipDuration = whipMaxDuration;
+                        whipSound.Play();
+                        animator.SetTrigger("Attack");
                     }
-                    attractors.RemoveRange(attractorCount, attractors.Count - attractorCount);
                 }
-                attackCooldown = whipMaxCooldown;
-                whipSound.Stop();
+                // If whip is over, slow down water, remove attractors, start cooldown to prevent attacking again
+                else if (whipDuration <= 0.0f)
+                {
+                    attacking = false;
+                    attractAmpl /= attractMultiplier;
+                    attractorCount -= whipAttractorCount;
+                    if (attractors.Count > attractorCount)
+                    {
+                        PolygonCollider2D[] colliders = waterDrop.GetComponents<PolygonCollider2D>();
+                        for (int colliderIdx = attractorCount; colliderIdx < attractors.Count; colliderIdx++)
+                        {
+                            Destroy(colliders[colliderIdx]);
+                        }
+                        attractors.RemoveRange(attractorCount, attractors.Count - attractorCount);
+                    }
+                    attackCooldown = whipMaxCooldown;
+                    whipSound.Stop();
+                }
             }
         }
     }

@@ -65,7 +65,7 @@ public class Fireball : MonoBehaviour {
         // And it emits steam if it hits an ice shard
         else if (other.gameObject.CompareTag("PlayerProjectile"))
         {
-            remainingHeat = 0;
+            remainingHeat -= heat/2;
             EmitSteam();
         }
     }

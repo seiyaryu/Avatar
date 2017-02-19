@@ -51,9 +51,25 @@ public class GameController : MonoBehaviour {
 	    if (!instance)
         {
             instance = this;
+            DontDestroyOnLoad(gameObject);
         }
         else if (instance != this)
         {
+            instance.player = player;
+
+            Damageable playerHP = player.GetComponent<Damageable>();
+            if (playerHP)
+            {
+                playerHP.GameCanvas = instance.gameScreen.transform;
+            }
+
+            instance.viewpoint = viewpoint;
+
+            UIController UI = instance.gameScreen.GetComponent<UIController>();
+            if (UI)
+            {
+                UI.Player = player;
+            }
             Destroy(gameObject);
         }
         spawner = GetComponent<Spawner>();
@@ -71,22 +87,29 @@ public class GameController : MonoBehaviour {
     {
         Time.timeScale = 0f;
         AudioListener.pause = true;
-        gameScreen.SetActive(false);
-        pauseScreen.SetActive(true);
+        if (gameScreen) gameScreen.SetActive(false);
+        if (pauseScreen) pauseScreen.SetActive(true);
     }
 
     public void Resume()
     {
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        gameScreen.SetActive(true);
-        pauseScreen.SetActive(false);
+        if (gameScreen) gameScreen.SetActive(true);
+        if (pauseScreen) pauseScreen.SetActive(false);
     }
 
     public void Restart()
     {
+        spawner.ResetCheckpoint();
+        Retry();
+    }
+
+    public void Retry()
+    {
         Time.timeScale = 1f;
         AudioListener.pause = false;
+        spawner.BackToCheckpoint();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
@@ -107,8 +130,8 @@ public class GameController : MonoBehaviour {
     {
         Time.timeScale = 0f;
         AudioListener.pause = true;
-        gameScreen.SetActive(false);
-        gameOverScreen.SetActive(true);
+        if (gameScreen) gameScreen.SetActive(false);
+        if (pauseScreen) gameOverScreen.SetActive(true);
     }
 
     static public GameController GameManager
@@ -118,7 +141,7 @@ public class GameController : MonoBehaviour {
 
     public bool GameOn
     {
-        get { return Time.timeScale > 0 && !titleScreen.activeSelf; }
+        get { return Time.timeScale > 0 && titleScreen && !titleScreen.activeSelf; }
     }
 
     public Camera Viewpoint

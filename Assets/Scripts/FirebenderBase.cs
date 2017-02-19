@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FirebenderTargeter : MonoBehaviour, IShooter {
+public class FirebenderBase : MonoBehaviour, IShooter {
 
-    private GameObject player;
-    private WaterFlask water;
+    protected Transform player;
+    protected WaterFlask water;
 
-    public GameObject Player
+    public Transform Player
     {
         set
         {
@@ -16,19 +16,31 @@ public class FirebenderTargeter : MonoBehaviour, IShooter {
         }
     }
 
-    [SerializeField]
-    private float firingMinRange = 2f;
-    [SerializeField]
-    private float firingMaxRange = 5f;
-    [SerializeField]
-    private float rangeVariation = 0.2f;
+    protected Damageable damageable;
 
-    private Damageable damageable;
-    private Animator animator;
+    [Header("Shooting")]
+
+    [SerializeField]
+    protected float firingMinRange = 2f;
+    [SerializeField]
+    protected float firingMaxRange = 5f;
+    [SerializeField]
+    protected float rangeVariation = 0.2f;
+    [SerializeField]
+    protected float aimAtPlayer = 0.1f;
+
+    [Header("Pain")]
+
+    [SerializeField]
+    private AudioSource painSound;
+
+    [SerializeField]
+    private AudioClip[] painClips;
+    [SerializeField]
+    private AudioClip[] deathClips;
 
     protected virtual void Awake()
     {
-        animator = GetComponent<Animator>();
         damageable = GetComponent<Damageable>();
         firingMinRange *= Random.Range(1f - rangeVariation, 1f + rangeVariation);
         firingMaxRange *= Random.Range(1f - rangeVariation, 1f + rangeVariation);
@@ -38,11 +50,18 @@ public class FirebenderTargeter : MonoBehaviour, IShooter {
     {
         if (!damageable.Stunned)
         {
-            animator.SetBool("Firing", false);
+            float aggroDist = Random.Range(firingMinRange, firingMaxRange);
+            float aggroSqrDist = aggroDist * aggroDist;
 
             Vector2 position = transform.position;
-            target = player.transform.position;
+            target = player.position;
             float sqrDist = (target - position).sqrMagnitude;
+
+            float directShot = Random.Range(0f, 1f);
+            if (directShot < aimAtPlayer && aggroSqrDist <= sqrDist)
+            {
+                return true;
+            }
 
             float sqrNorm = (water.GetDropPosition() - position).sqrMagnitude;
             if (sqrNorm < sqrDist)
@@ -69,8 +88,8 @@ public class FirebenderTargeter : MonoBehaviour, IShooter {
                     }
                 }
             }
-            float aggroDist = Random.Range(firingMinRange, firingMaxRange);
-            return aggroDist * aggroDist > sqrDist;
+            
+            return aggroSqrDist > sqrDist;
         }
         else
         {
@@ -79,13 +98,30 @@ public class FirebenderTargeter : MonoBehaviour, IShooter {
         }
     }
 
-    public virtual void OnShoot()
+    public virtual void OnShoot(Projectile projectile)
     {
-        animator.SetBool("Firing", true);
+
+    }
+
+    public virtual void OnReadyToShoot()
+    {
+
     }
 
     public virtual void OnReload()
     {
 
+    }
+
+    void PlayHurtSound()
+    {
+        painSound.clip = painClips[Random.Range(0, painClips.Length)];
+        painSound.Play();
+    }
+
+    void PlayDeathSound()
+    {
+        painSound.clip = painClips[Random.Range(0, deathClips.Length)];
+        painSound.Play();
     }
 }

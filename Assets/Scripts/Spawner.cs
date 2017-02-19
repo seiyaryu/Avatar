@@ -1,25 +1,42 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+public enum EnemyType { Firebender, FireTank}
+
 [System.Serializable]
-public class Spawn
+public struct Spawn
 {
     public float time;
     public Vector2 position;
+    public EnemyType type;
 }
 
 [System.Serializable]
-public class Wave {
+public struct Wave {
     public Spawn[] spawns;
+    public bool checkpoint;
 }
 
 public class Spawner : MonoBehaviour {
 
-    public Wave[] waves;
+    [Header("Waves")]
 
-    public GameObject firebender;
+    [SerializeField]
+    private Wave[] waves;
+
+    [Header("Prefabs")]
+
+    [SerializeField]
+    private GameObject firebender;
+    [SerializeField]
+    private GameObject tank;
+    [SerializeField]
+    private float tankLeftBound;
+    [SerializeField]
+    private float tankRightBound;
 
     private float time = 0f;
+    private int checkpointIndex = 0;
     private int waveIndex = 0;
     private int spawnIndex = 0;
     private int deathCount = 0;
@@ -31,13 +48,39 @@ public class Spawner : MonoBehaviour {
         get { return enemyCount; }
     }
 
+    int CountFirebenders()
+    {
+        int count = 0;
+        for (int waveIdx = checkpointIndex; waveIdx < waves.Length; waveIdx++)
+        {
+            foreach (Spawn spawn in waves[waveIdx].spawns)
+            {
+                if (spawn.type == EnemyType.Firebender)
+                {
+                    ++count;
+                }
+            }
+        }
+        return count;
+    }
+
     void Awake ()
     {
-        enemyCount = 0;
-        foreach (Wave wave in waves)
-        {
-            enemyCount += wave.spawns.Length;
-        }
+        enemyCount = CountFirebenders();
+    }
+
+    public void ResetCheckpoint ()
+    {
+        checkpointIndex = 0;
+    }
+
+    public void BackToCheckpoint ()
+    {
+        waveIndex = checkpointIndex;
+        enemyCount = CountFirebenders();
+        time = 0f;
+        deathCount = 0;
+        spawnIndex = 0;
     }
 
 	void Update ()
@@ -51,7 +94,11 @@ public class Spawner : MonoBehaviour {
                     time += Time.deltaTime;
                     while (spawnIndex < waves[waveIndex].spawns.Length && time >= waves[waveIndex].spawns[spawnIndex].time)
                     {
-                        SpawnFirebender();
+                        switch (waves[waveIndex].spawns[spawnIndex].type)
+                        {
+                            case EnemyType.Firebender : SpawnFirebender(); break;
+                            case EnemyType.FireTank: SpawnTank(); break;
+                        }
                         ++spawnIndex;
                     }
                 }
@@ -60,7 +107,16 @@ public class Spawner : MonoBehaviour {
                     ++waveIndex;
                     time = 0f;
                     deathCount = 0;
+                    spawnIndex = 0;
+                    if (waveIndex < waves.Length && waves[waveIndex].checkpoint)
+                    {
+                        checkpointIndex = waveIndex;
+                    }
                 }
+            }
+            else
+            {
+
             }
         }       
 	}
@@ -77,17 +133,22 @@ public class Spawner : MonoBehaviour {
         Firebender body = instance.GetComponent<Firebender>();
         if (body)
         {
-            body.Player = GameController.GameManager.Player;
-        }
-        FirebenderTargeter targeter = instance.GetComponent<FirebenderTargeter>();
-        if (targeter)
-        {
-            targeter.Player = GameController.GameManager.Player;
+            body.Player = GameController.GameManager.Player.transform;
         }
         Damageable damageable = instance.GetComponent<Damageable>();
         if (damageable)
         {
-            damageable.gameCanvas = GameController.GameManager.MainCanvas.transform;
+            damageable.GameCanvas = GameController.GameManager.MainCanvas.transform;
         }    
+    }
+
+    void SpawnTank ()
+    {
+        GameObject instance = (GameObject)Instantiate(tank, waves[waveIndex].spawns[spawnIndex].position, Quaternion.identity);
+        TankInitializer initializer = instance.GetComponent<TankInitializer>();
+        if (initializer)
+        {
+            initializer.Initialize(GameController.GameManager.Player.transform, GameController.GameManager.MainCanvas.transform, tankLeftBound, tankRightBound);
+        }
     }
 }

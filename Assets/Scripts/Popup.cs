@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public class PopupController : MonoBehaviour {
+public class Popup : MonoBehaviour {
 
     public Transform origin;
     private Camera viewpoint;

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class CountdownController : MonoBehaviour {
+public class Countdown : MonoBehaviour {
 
     public float lifetime = 1f;
 

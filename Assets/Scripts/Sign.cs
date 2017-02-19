@@ -6,9 +6,9 @@ public class Sign : MonoBehaviour {
     public string text;
     public Vector2 size;
 
-    public PopupController popup;
+    public Popup popup;
     public Transform popupOrigin;
-    private PopupController popupInstance;
+    private Popup popupInstance;
 
     private GameObject gameCanvas;
 
