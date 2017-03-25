@@ -116,7 +116,7 @@ public class Spawner : MonoBehaviour {
             }
             else
             {
-
+                GameController.GameManager.Victory();
             }
         }       
 	}
@@ -129,26 +129,21 @@ public class Spawner : MonoBehaviour {
 
     void SpawnFirebender ()
     {
-        GameObject instance = (GameObject) Instantiate(firebender, waves[waveIndex].spawns[spawnIndex].position, Quaternion.identity);
+        GameObject instance = Instantiate(firebender, waves[waveIndex].spawns[spawnIndex].position, Quaternion.identity, GameController.GameManager.Root);
         Firebender body = instance.GetComponent<Firebender>();
         if (body)
         {
             body.Player = GameController.GameManager.Player.transform;
         }
-        Damageable damageable = instance.GetComponent<Damageable>();
-        if (damageable)
-        {
-            damageable.GameCanvas = GameController.GameManager.MainCanvas.transform;
-        }    
     }
 
     void SpawnTank ()
     {
-        GameObject instance = (GameObject)Instantiate(tank, waves[waveIndex].spawns[spawnIndex].position, Quaternion.identity);
+        GameObject instance = Instantiate(tank, waves[waveIndex].spawns[spawnIndex].position, Quaternion.identity, GameController.GameManager.Root);
         TankInitializer initializer = instance.GetComponent<TankInitializer>();
         if (initializer)
         {
-            initializer.Initialize(GameController.GameManager.Player.transform, GameController.GameManager.MainCanvas.transform, tankLeftBound, tankRightBound);
+            initializer.Initialize(GameController.GameManager.Player.transform, tankLeftBound, tankRightBound);
         }
     }
 }

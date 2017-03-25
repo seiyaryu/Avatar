@@ -9,7 +9,7 @@ public class IceShard : MonoBehaviour {
     {
         if (other.gameObject.CompareTag("Enemy") || other.gameObject.CompareTag("Scene"))
         {
-            Instantiate(iceShatterAnimation, transform.position, transform.rotation);
+            Instantiate(iceShatterAnimation, transform.position, transform.rotation, GameController.GameManager.Root);
         }
     }
 }

@@ -46,7 +46,7 @@ public class Turret : MonoBehaviour, IShooter {
 
     public bool GetTarget (out Vector2 target)
     {
-        if (isPilotAlive && !tank.Charging)
+        if (isPilotAlive && tank.CurrentState == Tank.ChargeState.None)
         {
             Vector2 toTarget = transform.InverseTransformVector(transform.position - player.position).normalized;
             float angle = Mathf.Acos(Vector2.Dot(Vector2.left, toTarget)) * Mathf.Rad2Deg;

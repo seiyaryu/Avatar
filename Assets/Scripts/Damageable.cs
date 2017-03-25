@@ -26,11 +26,10 @@ public class Damageable : MonoBehaviour {
     [Header("Printing Damage")]
 
     [SerializeField]
-    private Transform gameCanvas;
-    [SerializeField]
     private Popup damagePopup;
     [SerializeField]
     private Transform popupOrigin;
+    private Transform canvas;
 
     private Rigidbody2D rigidBody;
     private Animator animator;
@@ -44,6 +43,8 @@ public class Damageable : MonoBehaviour {
         damageController = damageListener as IDamageListener;
 
         currentHP = maximumHP;
+
+        canvas = GameController.GameManager.MainCanvas.transform;
 
         if (animator) animator.SetFloat("CooldownSpeed", 1f / hitCooldown);
     }
@@ -59,9 +60,14 @@ public class Damageable : MonoBehaviour {
     void PrintDamage(int damage)
     {
         Popup popup = Instantiate(damagePopup); //Pop damage inflicted
-        popup.origin = popupOrigin;
-        popup.transform.SetParent(gameCanvas, false);
+        popup.transform.SetParent(canvas, false);
+        popup.Origin = popupOrigin;
         popup.Text = (-damage).ToString();
+    }
+
+    public void Restore ()
+    {
+        currentHP = maximumHP;
     }
 
     public void OnHit (int damage, Vector2 force)
@@ -108,11 +114,6 @@ public class Damageable : MonoBehaviour {
         {
             deathController.OnDeath();
         }
-    }
-
-    public Transform GameCanvas
-    {
-        set { gameCanvas = value; }
     }
 
     public bool Stunned

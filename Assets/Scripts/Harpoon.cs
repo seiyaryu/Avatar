@@ -38,7 +38,7 @@ public class Harpoon : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Water") && water.Frozen)
         {
-            Instantiate(iceShatterAnimation, transform.position, transform.rotation);
+            Instantiate(iceShatterAnimation, transform.position, transform.rotation, GameController.GameManager.Root);
         }
     }
 

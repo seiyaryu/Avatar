@@ -14,6 +14,9 @@ public class Engine : MonoBehaviour
     [Header("Tank Parts")]
 
     [SerializeField]
+    private Tank tank;
+
+    [SerializeField]
     private Pipe pipe;
     private bool pipeBlocked;
 
@@ -23,11 +26,13 @@ public class Engine : MonoBehaviour
     [Header("Overheat")]
 
     [SerializeField]
-    private int overheat;
+    private int overheat = 30;
     private int heat;
+    [SerializeField]
+    private float maxRedRatio = 0.9f;
 
     [SerializeField]
-    private float heatingDelay;
+    private float heatingDelay = 0.1f;
     private float heatingTimer;
 
     [SerializeField]
@@ -35,6 +40,15 @@ public class Engine : MonoBehaviour
 
     private SpriteRenderer spriteRenderer;
     private Damageable damageable;
+
+    [Header("Engine Sound")]
+    
+    [SerializeField]
+    private AudioSource engineSound;
+    [SerializeField]
+    private AudioClip engineClip;
+    [SerializeField]
+    private AudioClip chargingClip;
 
     void Awake()
     {
@@ -48,7 +62,7 @@ public class Engine : MonoBehaviour
     {
         if (heat > 0)
         {
-            float ratio = (float)(heat) / overheat;
+            float ratio = Mathf.Min((float)(heat) / overheat, maxRedRatio);
             spriteRenderer.material.SetFloat("_Flash", ratio);
             overheatingSound.volume = ratio;
             if (!overheatingSound.isPlaying)
@@ -74,6 +88,25 @@ public class Engine : MonoBehaviour
         {
             heatingTimer -= Time.deltaTime;
         }
+    }
+
+    public void Accelerate ()
+    {
+        engineSound.Stop();
+        engineSound.clip = chargingClip;
+        engineSound.Play();
+    }
+
+    public void Decelerate ()
+    {
+        engineSound.Stop();
+        engineSound.clip = engineClip;
+        engineSound.Play();
+    }
+
+    public void SetVolume (float volume)
+    {
+        engineSound.volume = volume;
     }
 
     public void EmitFumes ()
@@ -111,6 +144,7 @@ public class Engine : MonoBehaviour
         {
             hatch.Lock();
         }
+        engineSound.volume = 1f;
     }
 
     void FixedUpdate()
@@ -122,8 +156,7 @@ public class Engine : MonoBehaviour
     {
         if (water.Frozen)
         {
-            Collider2D[] colliders = water.waterDrop.GetComponents<Collider2D>();
-            return pipe.IsBlocked(colliders);
+            return pipe.IsBlocked(water);
         }
         else
         {
@@ -133,6 +166,6 @@ public class Engine : MonoBehaviour
 
     public bool Overheating
     {
-        get { return heat > 0; }
+        get { return heat > 0 || !damageable.Alive; }
     }
 }

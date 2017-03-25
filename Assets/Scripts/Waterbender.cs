@@ -61,7 +61,7 @@ public class Waterbender : MonoBehaviour, IDeathListener {
     [SerializeField]
     private AudioClip deathSoundClip;
 
-    void Start ()
+    void Awake ()
     {
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
@@ -71,6 +71,28 @@ public class Waterbender : MonoBehaviour, IDeathListener {
 
         groundMask = 1 << LayerMask.NameToLayer("Scene");
         waterMask  = 1 << LayerMask.NameToLayer("Water");
+    }
+
+    public void Reset ()
+    {
+        water.Reset();
+
+        transform.position = Vector3.zero;
+        rigidBody.velocity = Vector3.zero;
+
+        damageable.Restore();
+
+        animator.SetBool("Jump", false);
+        animator.SetBool("Walking", false);
+        animator.SetBool("Bending", false);
+        animator.Rebind();
+
+        movementSound.Stop();
+        jumpSound.Stop();
+        painSound.Stop();
+
+        move = 0f;
+        jump = JumpState.None;
     }
 
     void Update ()
@@ -199,7 +221,7 @@ public class Waterbender : MonoBehaviour, IDeathListener {
     {
         gameObject.layer = LayerMask.NameToLayer("Background");
         spriteRenderer.sortingOrder = -1;
-        water.LeakWater(water.maximumWater);
+        water.LeakWater(water.MaxWater);
         StartCoroutine(LaunchGameOver());
     }
 

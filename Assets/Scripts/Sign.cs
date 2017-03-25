@@ -12,13 +12,9 @@ public class Sign : MonoBehaviour {
 
     private GameObject gameCanvas;
 
-    void Start ()
-    {
-        gameCanvas = GameController.GameManager.MainCanvas;
-    }
-
     void Awake ()
     {
+        gameCanvas = GameController.GameManager.MainCanvas;
         text = text.Replace(",", "\n");
     }
 
@@ -27,8 +23,8 @@ public class Sign : MonoBehaviour {
         if (other.gameObject.CompareTag("Player") && !popupInstance)
         {
             popupInstance = Instantiate(popup);
-            popupInstance.origin = popupOrigin;
             popupInstance.transform.SetParent(gameCanvas.transform, false);
+            popupInstance.Origin = popupOrigin;
             popupInstance.Text = text;
             popupInstance.GetComponent<RectTransform>().sizeDelta = size;
         }

@@ -58,7 +58,7 @@ public class FirebenderBase : MonoBehaviour, IShooter {
             float sqrDist = (target - position).sqrMagnitude;
 
             float directShot = Random.Range(0f, 1f);
-            if (directShot < aimAtPlayer && aggroSqrDist <= sqrDist)
+            if (directShot < aimAtPlayer && sqrDist < aggroSqrDist)
             {
                 return true;
             }
@@ -89,7 +89,7 @@ public class FirebenderBase : MonoBehaviour, IShooter {
                 }
             }
             
-            return aggroSqrDist > sqrDist;
+            return sqrDist < aggroSqrDist;
         }
         else
         {

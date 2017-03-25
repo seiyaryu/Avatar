@@ -26,10 +26,11 @@ public class ExplosionZone : MonoBehaviour, IDeathListener {
             float x = Random.Range(-explosionZoneSize.x, explosionZoneSize.x);
             float y = Random.Range(-explosionZoneSize.y, explosionZoneSize.y);
             Vector3 position = transform.position + Vector3.right * x + Vector3.up * y;
-            Instantiate(explosion, position, Quaternion.identity);
+            Instantiate(explosion, position, Quaternion.identity, GameController.GameManager.Root);
             explosionIdx++;
             yield return new WaitForSeconds((explosionCount - explosionIdx) * explosionDelay / explosionCount);
         }
+        GameController.GameManager.NotifyDeath();
         Destroy(gameObject);
     }
 }

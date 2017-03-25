@@ -16,19 +16,12 @@ public class Pipe : MonoBehaviour {
         fumeSound = GetComponent<AudioSource>();
     }
 
-    public bool IsBlocked (Collider2D[] colliders)
+    public bool IsBlocked (WaterFlask water)
     {
         foreach (Vector2 chokePoint in chokePoints)
         {
             Vector2 point = transform.TransformPoint(chokePoint);
-            bool blocked = false;
-            int colliderIdx = 0;
-            while (!blocked && colliderIdx < colliders.Length)
-            {
-                blocked = colliders[colliderIdx].OverlapPoint(point);
-                ++colliderIdx;
-            }
-            if (!blocked)
+            if (!water.OverlapPoint(point))
             {
                 return false;
             }

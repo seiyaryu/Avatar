@@ -14,35 +14,16 @@ public class TankInitializer : MonoBehaviour {
     private TankPilot pilot;
     [SerializeField]
     private Engine engine;
-    
-    void Start ()
-    {
-        Initialize(GameController.GameManager.Player.transform, GameController.GameManager.MainCanvas.transform, -9f, 40);
-        Destroy(this);
-    }
 
-    public void Initialize(Transform player, Transform gameCanvas, float sceneLeftBound, float sceneRightBound)
+    public void Initialize(Transform player, float sceneLeftBound, float sceneRightBound)
     {
         tank.Player = player;
         tank.SceneLeftBound = sceneLeftBound;
         tank.SceneRightBound = sceneRightBound;
-
         harpoonCannon.Player = player;
-
         turret.Player = player;
-
         engine.Player = player;
-        Damageable engineHP = engine.GetComponent<Damageable>();
-        if (engineHP)
-        {
-            engineHP.GameCanvas = gameCanvas;
-        }
-
         pilot.Player = player;
-        Damageable pilotHP = pilot.GetComponent<Damageable>();
-        if (pilotHP)
-        {
-            pilotHP.GameCanvas = gameCanvas;
-        }
+        Destroy(this);
     }
 }

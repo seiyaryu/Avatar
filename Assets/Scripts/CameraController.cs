@@ -9,11 +9,18 @@ public class CameraController : MonoBehaviour {
 
     private Camera viewpoint;
 
-	void Start ()
+	void Awake ()
     {
         viewpoint = GetComponent<Camera>();
 	}
 	
+    public void Reset ()
+    {
+        Vector3 position = transform.position;
+        position.x = 0f;
+        transform.position = position;
+    }
+
 	void Update ()
     {
         if(GameController.GameManager.GameOn)

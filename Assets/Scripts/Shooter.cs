@@ -68,7 +68,7 @@ public class Shooter : MonoBehaviour {
     Projectile ShootAt (Vector2 target)
     {
         Vector2 origin = firingOrigin.position;
-        Projectile instance = (Projectile)Instantiate(projectile, origin, projectile.transform.rotation);
+        Projectile instance = Instantiate(projectile, origin, projectile.transform.rotation, GameController.GameManager.Root);
 
         instance.Direction = (target - origin).Rotate(Random.Range(-angularDeviation, angularDeviation));
         instance.Speed = instance.Speed * Random.Range(1f - speedDeviation, 1f + speedDeviation);

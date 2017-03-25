@@ -31,8 +31,6 @@ public class Tank : MonoBehaviour {
     int collisionDamage = 1;
     [SerializeField]
     float repelAmpl = 10f;
-    [SerializeField]
-    private Collider2D frontCollider;
 
     [Header("Scene Bounds")]
 
@@ -60,6 +58,9 @@ public class Tank : MonoBehaviour {
 
     private float chargeTimer;
 
+    public enum ChargeState { None, WarmUp, Charge, Recovery }
+    private ChargeState chargeState;
+
     [Header("Engine")]
 
     [SerializeField]
@@ -70,11 +71,9 @@ public class Tank : MonoBehaviour {
     [SerializeField]
     private AudioSource wheelSound;
     [SerializeField]
-    private AudioClip movingClip;
+    private AudioClip wheelRegularClip;
     [SerializeField]
-    private AudioClip chargingClip;
-    [SerializeField]
-    private AudioClip acceleratingClip;
+    private AudioClip wheelFastClip;
 
     void Awake()
     {
@@ -147,78 +146,104 @@ public class Tank : MonoBehaviour {
         backWheelJoint.motor = backMotor;
     }
 
-    void Charge ()
+    bool UpdateChargeState ()
     {
-        if (!engine.Overheating && chargeTimer > 0f)
-        {
-            chargeTimer -= Time.deltaTime;
-        }
+        ChargeState oldChargeState = chargeState;
 
-        if (chargeTimer < 0f)
+        if (chargeTimer < chargeRestDuration)
         {
-            chargeTimer = chargeCooldownDuration;
-            Restart();
-        }
-        else if (chargeTimer < chargeRestDuration)
-        {
-            rigidBody.velocity = Vector2.zero;
-            SetWheelRotationSpeed(0);
-            engine.EmitFumes();
+            chargeState = ChargeState.Recovery;
         }
         else if (chargeTimer < chargeDuration)
         {
-            rigidBody.velocity = Vector2.right * chargeSpeed * Orientation;
-            SetWheelRotationSpeed(chargeRotationSpeed);
-            if (wheelSound.clip != chargingClip)
-            {
-                wheelSound.clip = chargingClip;
-                wheelSound.volume = 1f;
-            }
+            chargeState = ChargeState.Charge;
         }
         else if (chargeTimer < chargeWarmUpDuration)
         {
-            Orient();
-            rigidBody.velocity = Vector2.right * chargeWarmUpSpeed * Orientation;
-            SetWheelRotationSpeed(chargeRotationSpeed);
-            if (wheelSound.clip != acceleratingClip)
-            {
-                wheelSound.clip = acceleratingClip;
-            }
-            wheelSound.volume = (chargeWarmUpDuration - chargeTimer) / (chargeWarmUpDuration - chargeDuration);
+            chargeState = ChargeState.WarmUp;
         }
         else
         {
-            Orient();
-            rigidBody.velocity = Vector2.right * tankSpeed * Orientation;
-            SetWheelRotationSpeed(rigidBody.velocity.x * Mathf.Rad2Deg / wheelRadius);
+            chargeState = ChargeState.None;
         }
+
+        return chargeState != oldChargeState;
     }
 
-    void Restart ()
+    void Charge ()
     {
-        engine.Restart();
-        wheelSound.clip = movingClip;
-    }
+        bool stateChange = false;
 
-    bool HitFront (ContactPoint2D[] contacts)
-    {
-        foreach(ContactPoint2D contact in contacts)
+        if (!engine.Overheating)
         {
-            if (contact.collider == frontCollider)
+            if (chargeTimer > 0f)
             {
-                return true;
+                chargeTimer -= Time.deltaTime;
             }
+            else
+            {
+                chargeTimer = chargeCooldownDuration;
+            }
+            stateChange = UpdateChargeState();
         }
-        return false;
+
+        switch (chargeState)
+        {
+            case ChargeState.None :
+                {
+                    if (stateChange)
+                    {
+                        engine.Restart();
+                        wheelSound.Stop();
+                        wheelSound.clip = wheelRegularClip;
+                        wheelSound.Play();
+                    }
+                    Orient();
+                    rigidBody.velocity = Vector2.right * tankSpeed * Orientation;
+                    SetWheelRotationSpeed(rigidBody.velocity.x * Mathf.Rad2Deg / wheelRadius);
+                }
+                break;
+            case ChargeState.Recovery :
+                {
+                    if (stateChange)
+                    {
+                        engine.Decelerate();
+                    }
+                    rigidBody.velocity = Vector2.zero;
+                    SetWheelRotationSpeed(0);
+                    engine.EmitFumes();
+                }
+                break;
+            case ChargeState.Charge :
+                {
+                    if (stateChange)
+                    {
+                        wheelSound.Stop();
+                        wheelSound.clip = wheelFastClip;
+                        wheelSound.Play();
+                    }
+                    rigidBody.velocity = Vector2.right * chargeSpeed * Orientation;
+                    SetWheelRotationSpeed(chargeRotationSpeed);
+                }
+                break;
+            case ChargeState.WarmUp :
+                {
+                    if (stateChange)
+                    {
+                        engine.Accelerate();
+                    }
+                    Orient();
+                    rigidBody.velocity = Vector2.right * chargeWarmUpSpeed * Orientation;
+                    SetWheelRotationSpeed(chargeRotationSpeed);
+                    engine.SetVolume(Mathf.Sqrt((chargeWarmUpDuration - chargeTimer) / (chargeWarmUpDuration - chargeDuration)));
+                }
+                break;
+        }
     }
 
     int GetDamage (Collision2D collision)
     {
         int damage = collisionDamage;
-        if (HitFront(collision.contacts))
-        {
-            damage += 1;
-        }
         if (chargeTimer > chargeRestDuration && chargeTimer < chargeDuration)
         {
             damage += 1;
@@ -256,9 +281,9 @@ public class Tank : MonoBehaviour {
         }
     }
 
-    public bool Charging
+    public ChargeState CurrentState
     {
-        get { return chargeTimer < chargeWarmUpDuration; }
+        get { return chargeState; }
     }
 
     public float Orientation

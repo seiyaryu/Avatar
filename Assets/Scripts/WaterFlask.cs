@@ -4,184 +4,192 @@ using System.Collections.Generic;
 
 public class WaterFlask : MonoBehaviour, IDamageListener {
 
-    [Tooltip("Maximum number of water particles")]
-    public int maximumWater = 200;
-    [Tooltip("How many particles can exit the flask at a time ?")]
-    public int waterFlow = 10;
+    [Header("Water")]
+
+    [SerializeField, Tooltip("Prefab of flying bended water")]
+    GameObject drop;
+
+    [SerializeField, Tooltip("Maximum number of water particles")]
+    int maximumWater = 200;
+    [SerializeField, Tooltip("How many particles can exit the flask at a time ?")]
+    int waterFlow = 10;
+
+    // The object holding all bounding elements of the floating water 
+    Transform water;
+
+    // Is the flask open ?
+    bool flaskOpen = false;
+
+    // All water particles
+    ParticleSystem particles;
+    // Temporary particle buffer
+    ParticleSystem.Particle[] buffer;
 
     // Current number of water particles
-    private int currentWater;
+    int currentWater;
     // How many water particles are still in the flask
-    private int storedWater;
+    int storedWater;
+
+    // Average velocity of water particles
+    Vector2 avgVelocity = Vector2.zero;
+    // Average position of water particles
+    Vector2 avgPosition = Vector2.zero;
 
     [Header("Particle Attraction")]
 
-    [Tooltip("How many points in space attract particles to them ?")]
-    public int attractorCount = 6;
-    [Tooltip("How much distance between attractors (relative to the radius of particles) ?")]
-    public float attractorSpacing = 1.5f;
+    [SerializeField, Tooltip("How many points in space attract particles to them ?")]
+    int attractorCount = 6;
+    [SerializeField, Tooltip("How much distance between attractors (relative to the radius of particles) ?")]
+    float attractorSpacing = 1.5f;
 
-    [Tooltip("How much does an attractor attract its particles ?")]
-    public float attractAmpl = 30f;
-    [Tooltip("How much more does an attractor attract its particles whan attacking or closing the flask ?")]
-    public float attractMultiplier = 3f;
-    [Tooltip("Minimum attraction")]
-    public float attractMin = 0.2f;
-    [Tooltip("Maximum attraction")]
-    public float attractMax = 30f;
+    [SerializeField, Tooltip("How much does an attractor attract its particles ?")]
+    float attractDefaultAmpl = 30f;
+    [SerializeField, Tooltip("How much more does an attractor attract its particles whan attacking or closing the flask ?")]
+    float attractMultiplier = 3f;
+
+    float attractAmpl;
+
+    [SerializeField, Tooltip("Minimum attraction")]
+    float attractMin = 0.2f;
+    [SerializeField, Tooltip("Maximum attraction")]
+    float attractMax = 30f;
 
     // List of all attractors positions
-    private List<Vector2> attractors;
+    List<Vector2> attractors;
     // Square radius of a particle
-    private float sqrParticleSize;
+    float sqrParticleSize;
     // Absolute distance between attractors
-    private float attractorRange;
+    float attractorRange;
     // Squared absolute distance between attractors
-    private float sqrAttractorRange;
+    float sqrAttractorRange;
 
     [Header("Particle Repulsion")]
 
-    [Tooltip("How much do particles repel each other?")]
-    public float repelAmpl = 1.0f;
-    [Tooltip("How close must particles be for repel to be effective (relative to particle radius) ?")]
-    public float repelSpacing = 1.2f;
+    [SerializeField, Tooltip("How much do particles repel each other?")]
+    float repelAmpl = 1.0f;
+    [SerializeField, Tooltip("How close must particles be for repel to be effective (relative to particle radius) ?")]
+    float repelSpacing = 1.2f;
 
     // Squared absolute repel range
-    private float sqrRepelRange;
+    float sqrRepelRange;
 
-    [Tooltip("How much are particles naturally slowed down")]
-    public float damp = 0.7f;
+    [SerializeField, Tooltip("How much are particles naturally slowed down")]
+    float damp = 0.7f;
 
     [Header("Particle Clustering")]
 
-    // The object holding all bounding elements of the floating water 
-    public Transform waterDrop;
-    // Average velocity of water particles
-    private Vector2 avgVelocity = Vector2.zero;
-    // Average position of water particles
-    private Vector2 avgPosition = Vector2.zero;
-
-    // All water particles
-    private ParticleSystem particles;
-    // Temporary particle buffer
-    private ParticleSystem.Particle[] buffer;
-
-    [Tooltip("How far away must particles be to be considered separate (relative to particle radius) ?")]
-    public float outsiderSpacing = 3f;
+    [SerializeField, Tooltip("How far away must particles be to be considered separate (relative to particle radius) ?")]
+    float outsiderSpacing = 3f;
     // Squared distance threshold for particles to be considered separate
-    private float sqrOutsiderRange;
+    float sqrOutsiderRange;
 
-    [Tooltip("Along how many directions do we construct bounding planes for K-dops ?")]
-    public int directionCount = 6;
+    [SerializeField, Tooltip("Along how many directions do we construct bounding planes for K-dops ?")]
+    int directionCount = 6;
     // Bounding planes sampling directions
-    private Vector2[] directions;
+    Vector2[] directions;
     // Extrema along each sampling direction
-    private float[] KDopExtremas;
+    float[] KDopExtremas;
     // Points making up a single K-dop
-    private Vector2[] KDopPoints;
+    Vector2[] KDopPoints;
 
     // Cluster indices for each water particle
-    private int[] clusters;
+    int[] clusters;
     // Current number of clusters of water particles
-    private int clusterCount;
+    int clusterCount;
 
     [Header("Freezing and Melting")]
 
-    [Tooltip("How small must the squared speed of a particle be for this particle to freeze ?")]
-    public float freezeThreshold = 2f;
-    [Tooltip("How mush time must pass to be able to melt or freeze water again ?")]
-    public float stateMaxCooldown = 0.5f;
-    private float stateCooldown = 0f;
+    [SerializeField, Tooltip("How small must the squared speed of a particle be for this particle to freeze ?")]
+    float freezeThreshold = 2f;
+    [SerializeField, Tooltip("How mush time must pass to be able to melt or freeze water again ?")]
+    float stateCooldown = 0.5f;
+    float stateTimer = 0f;
 
     // Identifier for the layer of moving objects
-    private int movingMask;
+    int movingMask;
     // Can the water be frozen right now ?
-    private bool freezable = false;
+    bool freezable = false;
     // Is water currently frozen ?
-    private bool frozen = false;
+    bool frozen = false;
 
     [Header("Attacking")]
 
-    [Tooltip("Ice shard Prefab")]
-    public Projectile iceShard;
-    [Tooltip("How much time between each ice shards throw ?")]
-    public float iceShardMaxCooldown = 0.5f;
-    [Tooltip("How many water particles cost each ice shard ?")]
-    public int iceShardCost = 5;
+    [SerializeField, Tooltip("Ice shard Prefab")]
+    Projectile iceShard;
+    [SerializeField, Tooltip("How much time between each ice shards throw ?")]
+    float iceShardCooldown = 0.5f;
+    [SerializeField, Tooltip("How many water particles cost each ice shard ?")]
+    int iceShardCost = 5;
 
-    [Tooltip("How much damage can the whip inflict at most ?")]
-    public int whipDamage = 3;
-    [Tooltip("How much time to be able to whip again ?")]
-    public float whipMaxCooldown = 5f;
-    [Tooltip("How many attractors do we add when whipping ?")]
-    public int whipAttractorCount = 30;
+    [SerializeField, Tooltip("How much damage can the whip inflict at most ?")]
+    int whipDamage = 3;
+    [SerializeField, Tooltip("How much time to be able to whip again ?")]
+    float whipCooldown = 5f;
+    [SerializeField, Tooltip("How many attractors do we add when whipping ?")]
+    int whipAttractorCount = 30;
 
-    private float attackCooldown = 0f;
+    float attackTimer = 0f;
 
-    [Tooltip("How much time can a whip last ?")]
-    public float whipMaxDuration = 1f;
-    private float whipDuration = 0f;
+    [SerializeField, Tooltip("How much time can a whip last ?")]
+    float whipDuration = 1f;
+    float whipTimer = 0f;
 
-    [Tooltip("How big must the squared speed of water be for the whip to be effective ?")]
-    public float whipSpeedThreshold = 25f;
+    [SerializeField, Tooltip("How big must the squared speed of water be for the whip to be effective ?")]
+    float whipSpeedThreshold = 25f;
 
-    [Tooltip("How much time cato start gathering water again ?")]
-    public float gatherMaxCooldown = 1f;
-    private float gatherCooldown = 0f;
+    [SerializeField, Tooltip("How much time cato start gathering water again ?")]
+    float gatherCooldown = 1f;
+    float gatherTimer = 0f;
 
-    [Tooltip("How much does the whip push back stuff ?")]
-    public float rejectAmpl = 30f;
+    [SerializeField, Tooltip("How much does the whip push back stuff ?")]
+    float rejectAmpl = 30f;
 
-    [Tooltip("Prefab for water falling when waterbender is hit")]
-    public ParticleSystem fallingWater;
-    [Tooltip("Number of particles lost when waterbender takes a hit")]
-    public int particleLossOnHit = 20;
+    [SerializeField, Tooltip("Prefab for water falling when waterbender is hit")]
+    ParticleSystem fallingWater;
+    [SerializeField, Tooltip("Number of particles lost when waterbender takes a hit")]
+    int particleLossOnHit = 20;
 
-    // Is the flask open ?
-    private bool flaskOpen = false;
     // Are we attacking something right now
-    private bool attacking = false;
+    bool attacking = false;
 
-    private Animator animator;
-    private Damageable damageable;
+    Animator animator;
+    Damageable damageable;
 
     [Header("Audio")]
 
-    public AudioSource waterSound;
-    public AudioSource whipSound;
-    public AudioSource whipCrackSound;
-    public AudioSource throwShardSound;
-    public AudioSource freezeSound;
-
-    void Start ()
-    {
-        movingMask = LayerMask.GetMask(new string[]{"Player", "Enemy"});
-    }
+    [SerializeField, Tooltip("")]
+    AudioSource waterSound;
+    [SerializeField, Tooltip("")]
+    AudioSource whipSound;
+    [SerializeField, Tooltip("")]
+    AudioSource whipCrackSound;
+    [SerializeField, Tooltip("")]
+    AudioSource shardThrowSound;
+    [SerializeField, Tooltip("")]
+    AudioSource freezeSound;
 
     void Awake ()
     {
-        currentWater = maximumWater;
-        storedWater = maximumWater;
-
         particles = GetComponent<ParticleSystem>();
-
         ParticleSystem.MainModule main = particles.main;
         main.maxParticles = maximumWater;
 
+        currentWater = maximumWater;
+        storedWater = maximumWater;
+
+        water = Instantiate(drop, Vector3.zero, Quaternion.identity, GameController.GameManager.Root).transform;
+
         buffer = new ParticleSystem.Particle[particles.main.maxParticles];
 
+        attractAmpl = attractDefaultAmpl;
         attractors = new List<Vector2>();
-        attractors.Add(new Vector2());
-        waterDrop.gameObject.AddComponent<PolygonCollider2D>().isTrigger = true;
+        attractors.Add(Vector2.zero);
 
         sqrParticleSize = particles.main.startSize.constant * particles.main.startSize.constant;
         attractorRange = particles.main.startSize.constant * attractorSpacing;
         sqrAttractorRange = attractorRange * attractorRange;
         sqrRepelRange = repelSpacing * repelSpacing * sqrParticleSize;
         sqrOutsiderRange = outsiderSpacing * outsiderSpacing * sqrParticleSize;
-
-        animator = GetComponentInParent<Animator>();
-        damageable = GetComponentInParent<Damageable>();
 
         // We will uniformly sample directions in 2D on the unit circle
         directions = new Vector2[directionCount];
@@ -194,8 +202,46 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
         KDopPoints = new Vector2[2 * directionCount];
 
         clusters = new int[particles.main.maxParticles];
+
+        animator = GetComponentInParent<Animator>();
+        damageable = GetComponentInParent<Damageable>();
+
+        movingMask = LayerMask.GetMask(new string[] { "Player", "Enemy" });
     }
 
+    // Reset the whole flask to initial state
+    public void Reset ()
+    {
+        Destroy(water.gameObject);
+        water = Instantiate(drop, Vector3.zero, Quaternion.identity, GameController.GameManager.Root).transform;
+
+        currentWater = maximumWater;
+        storedWater = maximumWater;
+
+        attractAmpl = attractDefaultAmpl;
+        attractors.Clear();
+        attractors.Add(Vector2.zero);
+        clusterCount = 0;
+
+        avgVelocity = Vector2.zero;
+        avgPosition = Vector2.zero;
+
+        particles.Clear();
+        flaskOpen = false;
+        frozen = false;
+        freezable = false;
+        attacking = false;
+
+        whipSound.Stop();
+        whipCrackSound.Stop();
+        shardThrowSound.Stop();
+        freezeSound.Stop();
+
+        attackTimer = 0f;
+        stateTimer = 0f;
+        gatherTimer = 0f;
+        whipTimer = 0f;
+    }
 
     // Update the position of points attracting water particles
     void UpdateAttractors()
@@ -219,7 +265,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
                         {
                             float ratio = (newAttractorCount - attractorIdx) / (float)(newAttractorCount);
                             attractors.Insert(0, mouse + toAttractor * ratio);
-                            waterDrop.gameObject.AddComponent<PolygonCollider2D>().isTrigger = true;
+                            water.gameObject.AddComponent<PolygonCollider2D>().isTrigger = true;
                         }
 
                     }
@@ -263,7 +309,21 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     // Get Position of the main water drop
     public Vector2 GetDropPosition ()
     {
-        return waterDrop.position;
+        return water.position;
+    }
+
+    // Check if point is inside one of the colliders of the drop
+    public bool OverlapPoint (Vector2 point)
+    {
+        Collider2D[] colliders = water.gameObject.GetComponents<Collider2D>();
+        foreach (Collider2D collider in colliders)
+        {
+            if (collider.OverlapPoint(point))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Slow all particles
@@ -298,30 +358,8 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
         }
     }
 
-    // Fuse clusters of provided identifiers into one
-    void FuseClusters(int oldCluster, int newCluster)
-    {
-        for (int particleIdx = 0; particleIdx < particles.particleCount; particleIdx++)
-        {
-            if (clusters[particleIdx] == oldCluster)
-            {
-                clusters[particleIdx] = newCluster;
-            }
-        }
-    }
-
-    // Break all clusters
-    void ResetClusters ()
-    {
-        for (int particleIdx = 0; particleIdx < particles.particleCount; particleIdx++)
-        {
-            clusters[particleIdx] = -1;
-        }
-        clusterCount = 0;
-    }
-
     // Repel and cluster particles
-    void Repel ()
+    void Repel()
     {
         for (int particleIdx = 0; particleIdx < particles.particleCount; particleIdx++)
         {
@@ -361,6 +399,28 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
                 }
             }
         }
+    }
+
+    // Fuse clusters of provided identifiers into one
+    void FuseClusters(int oldCluster, int newCluster)
+    {
+        for (int particleIdx = 0; particleIdx < particles.particleCount; particleIdx++)
+        {
+            if (clusters[particleIdx] == oldCluster)
+            {
+                clusters[particleIdx] = newCluster;
+            }
+        }
+    }
+
+    // Break all clusters
+    void ResetClusters ()
+    {
+        for (int particleIdx = 0; particleIdx < particles.particleCount; particleIdx++)
+        {
+            clusters[particleIdx] = -1;
+        }
+        clusterCount = 0;
     }
 
     // Particles should not die unless desired
@@ -489,13 +549,13 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     // Compute K-dops for each attractor with the particles in the main cluster 
     void ComputeKDop()
     {
-        PolygonCollider2D[] colliders = waterDrop.gameObject.GetComponents<PolygonCollider2D>();
+        PolygonCollider2D[] colliders = water.gameObject.GetComponents<PolygonCollider2D>();
         avgVelocity = Vector2.zero;
 
         // If there are no particles out there
         if (particles.particleCount == 0)
         {
-            waterDrop.position = transform.position;
+            water.position = transform.position;
             foreach(PolygonCollider2D collider in colliders)
             {
                 collider.pathCount = 0;
@@ -504,7 +564,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
         }
         else
         {
-            waterDrop.position = avgPosition;
+            water.position = avgPosition;
         }
 
         avgPosition = Vector2.zero;
@@ -521,7 +581,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
 
         if (particleCount == 0)
         {
-            waterDrop.position = transform.position;          
+            water.position = transform.position;          
         }
         else
         {
@@ -604,7 +664,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
 
                 KDopPoints[directionIdx].x = (B2 * C1 - B1 * C2) / det;
                 KDopPoints[directionIdx].y = (A1 * C2 - A2 * C1) / det;
-                KDopPoints[directionIdx] = waterDrop.InverseTransformPoint(KDopPoints[directionIdx]);
+                KDopPoints[directionIdx] = water.InverseTransformPoint(KDopPoints[directionIdx]);
             }
             KDop.SetPath(0, KDopPoints);
         }
@@ -652,18 +712,18 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     // Are we gathering water right now ?
     public bool IsGatheringWater ()
     {
-        return gatherCooldown > 0f;
+        return gatherTimer > 0f;
     }
 
     // Gather water back from the environment
     void GatherWater ()
     {
         // Update cooldown
-        if(gatherCooldown > 0f)
+        if(gatherTimer > 0f)
         {
-            gatherCooldown -= Time.deltaTime;
+            gatherTimer -= Time.deltaTime;
             // Gathering is over, restore original speed
-            if(gatherCooldown <= 0f)
+            if(gatherTimer <= 0f)
             {
                 attractAmpl *= attractMultiplier;
             }
@@ -672,7 +732,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
         if (flaskOpen && !frozen)
         {
             // Start gathering water
-            if (Input.GetButtonDown("Gather") && gatherCooldown <= 0f)
+            if (Input.GetButtonDown("Gather") && gatherTimer <= 0f)
             {
                 attractAmpl /= attractMultiplier;
             }
@@ -680,14 +740,14 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
             else if (Input.GetButton("Gather"))
             {
                 // Reset cooldown
-                gatherCooldown = gatherMaxCooldown;
+                gatherTimer = gatherCooldown;
                 
                 // Iterate through water sources and ask them to spawn water particles
                 List<Vector3> spawns = new List<Vector3>();
                 GameObject[] sources = GameObject.FindGameObjectsWithTag("WaterSource");
                 foreach (GameObject source in sources)
                 {
-                    source.GetComponent<WaterSource>().EmitWater(waterDrop.position, 10f, spawns);
+                    source.GetComponent<WaterSource>().EmitWater(water.position, 10f, spawns);
                 }
 
                 // We do not want to spawn more particles than allowed to
@@ -710,7 +770,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     {
         if(!frozen)
         {
-            Collider2D[] colliders = waterDrop.gameObject.GetComponents<Collider2D>();
+            Collider2D[] colliders = water.gameObject.GetComponents<Collider2D>();
             foreach (Collider2D collider in colliders)
             {
                 if (collider.IsTouchingLayers(movingMask))
@@ -726,9 +786,9 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     void TransformWater()
     {
         // Update state change cooldown
-        if (stateCooldown > 0.0f)
+        if (stateTimer > 0.0f)
         {
-            stateCooldown -= Time.deltaTime;
+            stateTimer -= Time.deltaTime;
         }
 
         // Liquid is the default state when there is no water
@@ -739,10 +799,10 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
         }
 
         // Switch physical state of water
-        if (Input.GetButtonDown("Freeze") && flaskOpen && currentWater > 0 && stateCooldown <= 0.0f && freezable)
+        if (Input.GetButtonDown("Freeze") && flaskOpen && currentWater > 0 && stateTimer <= 0.0f && freezable)
         {
             frozen = !frozen;
-            stateCooldown = stateMaxCooldown;
+            stateTimer = stateCooldown;
             // Frozen water is unaffected by gravity and a solid obstacle
             if (frozen) FreezeWater();
             else MeltWater();
@@ -753,7 +813,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     {
         ParticleSystem.MainModule main = particles.main;
         main.gravityModifier = 0.0f;
-        Collider2D[] colliders = waterDrop.GetComponents<Collider2D>();
+        Collider2D[] colliders = water.GetComponents<Collider2D>();
         foreach (Collider2D collider in colliders)
         {
             collider.isTrigger = false;
@@ -765,7 +825,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     {
         ParticleSystem.MainModule main = particles.main;
         main.gravityModifier = 1.0f;
-        Collider2D[] colliders = waterDrop.GetComponents<Collider2D>();
+        Collider2D[] colliders = water.GetComponents<Collider2D>();
         foreach (Collider2D collider in colliders)
         {
             collider.isTrigger = true;
@@ -787,20 +847,20 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
             }
             particles.SetParticles(buffer, particleCount);
 
-            Vector2 center = waterDrop.position;
+            Vector2 center = water.position;
             Vector2 mouse = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
             Vector2 direction = mouse - center;
             Vector2 normal = direction.Rotate(0.5f * Mathf.PI).normalized;
 
             // Spawn ice shard
-            Projectile iceShardInstance = (Projectile)Instantiate(iceShard, center + Random.Range(-0.5f, 0.5f) * normal, Quaternion.identity);
+            Projectile iceShardInstance = Instantiate(iceShard, center + Random.Range(-0.5f, 0.5f) * normal, Quaternion.identity, GameController.GameManager.Root);
 
             iceShardInstance.Direction = direction;
 
-            attackCooldown = iceShardMaxCooldown;
+            attackTimer = iceShardCooldown;
 
-            throwShardSound.Play();
+            shardThrowSound.Play();
             animator.SetTrigger("Attack");
         }
     }
@@ -830,14 +890,14 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
     void Attack()
     {
         // Update cooldowns
-        if (attackCooldown > 0.0f)
+        if (attackTimer > 0.0f)
         {
-            attackCooldown -= Time.deltaTime;
+            attackTimer -= Time.deltaTime;
         }
 
-        if (whipDuration > 0.0f)
+        if (whipTimer > 0.0f)
         {
-            whipDuration -= Time.deltaTime;
+            whipTimer -= Time.deltaTime;
         }
 
         if (flaskOpen)
@@ -845,7 +905,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
             // If water is frozen, we attack by throwing shards
             if (frozen)
             {
-                if (Input.GetButton("Attack") && attackCooldown <= 0.0f)
+                if (Input.GetButton("Attack") && attackTimer <= 0.0f)
                 {
                     ShootIceShard();
                 }
@@ -857,32 +917,32 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
                 if (!attacking)
                 {
                     // Start to attack : speed up water, add attractors, start cooldown for the duration of the attack
-                    if (Input.GetButtonDown("Attack") && attackCooldown <= 0.0f)
+                    if (Input.GetButtonDown("Attack") && attackTimer <= 0.0f)
                     {
                         attacking = true;
                         attractAmpl *= attractMultiplier;
                         attractorCount += whipAttractorCount;
-                        whipDuration = whipMaxDuration;
+                        whipTimer = whipDuration;
                         whipSound.Play();
                         animator.SetTrigger("Attack");
                     }
                 }
                 // If whip is over, slow down water, remove attractors, start cooldown to prevent attacking again
-                else if (whipDuration <= 0.0f)
+                else if (whipTimer <= 0.0f)
                 {
                     attacking = false;
                     attractAmpl /= attractMultiplier;
                     attractorCount -= whipAttractorCount;
                     if (attractors.Count > attractorCount)
                     {
-                        PolygonCollider2D[] colliders = waterDrop.GetComponents<PolygonCollider2D>();
+                        PolygonCollider2D[] colliders = water.GetComponents<PolygonCollider2D>();
                         for (int colliderIdx = attractorCount; colliderIdx < attractors.Count; colliderIdx++)
                         {
                             Destroy(colliders[colliderIdx]);
                         }
                         attractors.RemoveRange(attractorCount, attractors.Count - attractorCount);
                     }
-                    attackCooldown = whipMaxCooldown;
+                    attackTimer = whipCooldown;
                     whipSound.Stop();
                 }
             }
@@ -902,7 +962,7 @@ public class WaterFlask : MonoBehaviour, IDamageListener {
             int particleCount = particles.GetParticles(buffer);
 
             // Instantiate falling water (affected by gravity) at the same place as the lost particles
-            ParticleSystem fallingWaterInstance = (ParticleSystem)Instantiate(fallingWater, Vector3.zero, Quaternion.identity);
+            ParticleSystem fallingWaterInstance = Instantiate(fallingWater, Vector3.zero, Quaternion.identity, GameController.GameManager.Root);
             int particleLoss = Mathf.Min(particleCount, particleAmount);
 
             ParticleSystem.Particle[] lossBuffer = new ParticleSystem.Particle[particleAmount];

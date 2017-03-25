@@ -120,7 +120,7 @@ public class HarpoonCannon : MonoBehaviour, IShooter {
 
     public bool GetTarget(out Vector2 target)
     {
-        if (!tank.Charging)
+        if (tank.CurrentState == Tank.ChargeState.None)
         {
             if (transform.localPosition.x < cannonAimingPosition)
             {

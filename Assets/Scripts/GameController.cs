@@ -4,6 +4,8 @@ using System.Collections;
 
 public class GameController : MonoBehaviour {
 
+    [Header("Screens")]
+
     [SerializeField]
     private GameObject titleScreen;
 
@@ -17,32 +19,33 @@ public class GameController : MonoBehaviour {
     private GameObject gameOverScreen;
 
     [SerializeField]
+    private GameObject victoryScreen;
+
+    [Header("Player")]
+
+    [SerializeField]
     private GameObject player;
 
-    public GameObject Player
-    {
-        get { return player; }
-    }
+    [SerializeField]
+    private Vector2 spawnPosition;
 
     [SerializeField]
     private Camera viewpoint;
 
-    private Spawner spawner;
+    [Header("Victory")]
 
-    public int EnemyCount
-    {
-        get
-        {
-            if (spawner)
-            {
-                return spawner.EnemyCount;
-            }
-            else
-            {
-                return 0;
-            }
-        }
-    }
+    [SerializeField]
+    private Boat boat;
+
+    [Header("Temporaries")]
+
+    [SerializeField]
+    private GameObject tempScreen;
+
+    [SerializeField]
+    private Transform tempRoot;
+
+    private Spawner spawner;
 
     private static GameController instance = null;
 
@@ -51,27 +54,11 @@ public class GameController : MonoBehaviour {
 	    if (!instance)
         {
             instance = this;
-            DontDestroyOnLoad(gameObject);
         }
         else if (instance != this)
         {
-            instance.player = player;
-
-            Damageable playerHP = player.GetComponent<Damageable>();
-            if (playerHP)
-            {
-                playerHP.GameCanvas = instance.gameScreen.transform;
-            }
-
-            instance.viewpoint = viewpoint;
-
-            UIController UI = instance.gameScreen.GetComponent<UIController>();
-            if (UI)
-            {
-                UI.Player = player;
-            }
             Destroy(gameObject);
-        }
+        }     
         spawner = GetComponent<Spawner>();
     }
 
@@ -99,6 +86,18 @@ public class GameController : MonoBehaviour {
         if (pauseScreen) pauseScreen.SetActive(false);
     }
 
+    void Clear ()
+    {
+        foreach (Transform child in tempScreen.transform)
+        {
+            Destroy(child.gameObject);
+        }
+        foreach (Transform child in tempRoot.transform)
+        {
+            Destroy(child.gameObject);
+        }
+    }
+
     public void Restart()
     {
         spawner.ResetCheckpoint();
@@ -109,8 +108,15 @@ public class GameController : MonoBehaviour {
     {
         Time.timeScale = 1f;
         AudioListener.pause = false;
+
         spawner.BackToCheckpoint();
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+
+        Clear();
+
+        viewpoint.GetComponent<CameraController>().Reset();
+
+        player.GetComponent<Waterbender>().Reset();
+        player.transform.position = spawnPosition;
     }
 
     public void ExitGame ()
@@ -134,14 +140,43 @@ public class GameController : MonoBehaviour {
         if (pauseScreen) gameOverScreen.SetActive(true);
     }
 
+    public void Victory ()
+    {
+        boat.Leave();
+        StartCoroutine(OnVictory());
+    }
+
+    IEnumerator OnVictory ()
+    {
+        yield return new WaitForSeconds(3f);
+        if (gameScreen) gameScreen.SetActive(false);
+        if (victoryScreen) victoryScreen.SetActive(true);
+    }
+
     static public GameController GameManager
     {
-        get { return instance; }
+        get
+        {
+            if (!instance)
+            {
+                GameObject gameManager = GameObject.FindGameObjectWithTag("GameManager");
+                if (gameManager)
+                {
+                    instance = gameManager.GetComponent<GameController>();
+                }
+            }
+            return instance;
+        }
+    }
+
+    public GameObject Player
+    {
+        get { return player; }
     }
 
     public bool GameOn
     {
-        get { return Time.timeScale > 0 && titleScreen && !titleScreen.activeSelf; }
+        get { return Time.timeScale > 0 && gameScreen && gameScreen.activeSelf; }
     }
 
     public Camera Viewpoint
@@ -149,8 +184,28 @@ public class GameController : MonoBehaviour {
         get { return viewpoint; }
     }
 
+    public Transform Root
+    {
+        get { return tempRoot; }
+    }
+
     public GameObject MainCanvas
     {
-        get { return gameScreen; }
+        get { return tempScreen; }
+    }
+
+    public int EnemyCount
+    {
+        get
+        {
+            if (spawner)
+            {
+                return spawner.EnemyCount;
+            }
+            else
+            {
+                return 0;
+            }
+        }
     }
 }

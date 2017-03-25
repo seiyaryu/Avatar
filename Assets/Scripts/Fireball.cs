@@ -60,7 +60,7 @@ public class Fireball : MonoBehaviour {
         // The fireball explodes if it hits the player or the scene
         if (other.gameObject.CompareTag("Player") || other.gameObject.CompareTag("Scene"))
         {
-            Instantiate(explosionAnimation, transform.position, Quaternion.identity);
+            Instantiate(explosionAnimation, transform.position, Quaternion.identity, GameController.GameManager.Root);
         }
         // And it emits steam if it hits an ice shard
         else if (other.gameObject.CompareTag("PlayerProjectile"))
@@ -123,7 +123,7 @@ public class Fireball : MonoBehaviour {
 
     void EmitSteam()
     {
-        GameObject steamEffect = Instantiate(steamAnimation, transform.position, Quaternion.identity) as GameObject;
+        GameObject steamEffect = Instantiate(steamAnimation, transform.position, Quaternion.identity, GameController.GameManager.Root);
         // If the sound of the animation was heard not long ago, we do not want to hear it yet
         if (steamSoundCooldown > 0f)
         {
